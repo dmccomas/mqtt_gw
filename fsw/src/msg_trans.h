@@ -113,14 +113,15 @@ typedef struct
 **       called using the same cmdmgr instance.
 */
 void MSG_TRANS_Constructor(MSG_TRANS_Class_t *MsgTransPtr,
-                           const INITBL_Class_t *IniTbl);
+                           const INITBL_Class_t *IniTbl,
+                           TBLMGR_Class_t *TblMgr);
 
 
 /******************************************************************************
 ** Function: MSG_TRANS_ProcessSbMsg
 **
 ** Notes:
-**   1. Signature must mach MQTT_CLIENT_MsgCallback
+**   None
 **
 */
 void MSG_TRANS_ProcessSbMsg(const CFE_MSG_Message_t *MsgPt);

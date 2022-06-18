@@ -36,7 +36,6 @@
 #include <string.h>
 
 #include "msg_trans.h"
-#include "mqtt_client.h"
 
 /**********************/
 /** Global File Data **/
@@ -50,7 +49,8 @@ static MSG_TRANS_Class_t *MsgTrans = NULL;
 **
 */
 void MSG_TRANS_Constructor(MSG_TRANS_Class_t *MsgTransPtr,
-                           const INITBL_Class_t  *IniTbl)
+                           const INITBL_Class_t  *IniTbl,
+                           TBLMGR_Class_t *TblMgr)
 {
  
    MsgTrans = MsgTransPtr;
@@ -58,9 +58,14 @@ void MSG_TRANS_Constructor(MSG_TRANS_Class_t *MsgTransPtr,
    CFE_PSP_MemSet((void*)MsgTransPtr, 0, sizeof(MSG_TRANS_Class_t));
 
    MsgTrans->TopicBaseMid  = INITBL_GetIntConfig(IniTbl, CFG_TOPIC_MSG_MID);
+   
    MQTT_TOPIC_TBL_Constructor(&MsgTrans->TopicTbl, 
                               INITBL_GetStrConfig(IniTbl, CFG_APP_CFE_NAME),
-                              MsgTrans->TopicBaseMid);   
+                              MsgTrans->TopicBaseMid);
+                              
+   TBLMGR_RegisterTblWithDef(TableMgr, MQTT_TOPIC_TBL_LoadCmd, 
+                             MQTT_TOPIC_TBL_DumpCmd,  
+                             INITBL_GetIntConfig(IniTbl, CFG_MQTT_TOPIC_TBL_DEF_FILE));                           
 
 
 } /* End MSG_TRANS_Constructor() */
@@ -164,8 +169,7 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
    
    fflush(stdout);
 
-   MQTT_CLIENT_Publish("osk/test",NULL);
-   
+  
 } /* End MSG_TRANS_ProcessMqttMsg() */
 
 
@@ -173,8 +177,7 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
 ** Function: MSG_TRANS_ProcessSbMsg
 **
 ** Notes:
-**   1. Signature must match MQTT_CLIENT_MsgCallback_t
-**   2. MQTT has no delimeter between the topic and payload
+**   None
 **
 */
 void MSG_TRANS_ProcessSbMsg(const CFE_MSG_Message_t *MsgPtr)
@@ -218,7 +221,7 @@ void MSG_TRANS_ProcessSbMsg(const CFE_MSG_Message_t *MsgPtr)
 void MSG_TRANS_ResetStatus(void)
 {
 
-   /* Nothing to do */
+   MQTT_TOPIC_TBL_ResetStatus();
 
 } /* MSG_TRANS_ResetStatus() */
 

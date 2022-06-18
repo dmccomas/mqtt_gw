@@ -92,7 +92,7 @@ typedef struct
 **   1. This must be classed prior to any other member functions.
 **
 */
-void MQTT_MGR_Constructor(MQTT_MGR_Class_t *TopicMgrPtr,
+void MQTT_MGR_Constructor(MQTT_MGR_Class_t *MqttMgrPtr,
                           const INITBL_Class_t *IniTbl, TBLMGR_Class_t *TblMgr);
 
 
