@@ -63,9 +63,9 @@ void MSG_TRANS_Constructor(MSG_TRANS_Class_t *MsgTransPtr,
                               INITBL_GetStrConfig(IniTbl, CFG_APP_CFE_NAME),
                               MsgTrans->TopicBaseMid);
                               
-   TBLMGR_RegisterTblWithDef(TableMgr, MQTT_TOPIC_TBL_LoadCmd, 
+   TBLMGR_RegisterTblWithDef(TblMgr, MQTT_TOPIC_TBL_LoadCmd, 
                              MQTT_TOPIC_TBL_DumpCmd,  
-                             INITBL_GetIntConfig(IniTbl, CFG_MQTT_TOPIC_TBL_DEF_FILE));                           
+                             INITBL_GetStrConfig(IniTbl, CFG_MQTT_TOPIC_TBL_DEF_FILE));                           
 
 
 } /* End MSG_TRANS_Constructor() */
@@ -85,6 +85,7 @@ void MSG_TRANS_ProcessMqttMsg(MessageData* MsgData)
    MQTTMessage* MsgPtr = MsgData->message;
 
    int16 i = 0;
+   int   TopicLen;
    char  TopicStr[MQTT_TOPIC_TBL_MAX_TOPIC_LEN];
    bool  MsgFound = false;
    const MQTT_TOPIC_TBL_Entry_t *TopicTblEntry;
@@ -106,7 +107,8 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
         TopicTblEntry = MQTT_TOPIC_TBL_GetEntry(i);
         if (TopicTblEntry != NULL)
         {
-            int TopicLen = strlen(TopicTblEntry->Name);
+            
+            TopicLen = strlen(TopicTblEntry->Name);
             
             OS_printf("Table topic name=%s, length=%d\n", TopicTblEntry->Name, TopicLen);
             if (strncmp(TopicTblEntry->Name, MsgData->topicName->lenstring.data, TopicLen) == 0)
@@ -133,7 +135,7 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
                        
          JsonToCfe = MQTT_TOPIC_TBL_GetJsonToCfe(i);    
          
-         if JsonToCfe(CfeMsg, &MsgData->topicName->lenstring.data[TopicLen]))
+         if (JsonToCfe(CfeMsg, &MsgData->topicName->lenstring.data[TopicLen]))
          {
       
             CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_INFORMATION,

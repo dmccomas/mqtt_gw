@@ -24,86 +24,38 @@
 **
 */
 
-#ifndef _mqtt_topic_rate_
-#define _mqtt_topic_rate_
-
 /*
 ** Includes
 */
 
-#include "app_cfg.h"
+#include "mqtt_topic_rate.h"
 
+/************************************/
+/** Local File Function Prototypes **/
+/************************************/
 
-/***********************/
-/** Macro Definitions **/
-/***********************/
+static bool LoadJsonData(const char *JsonMsgPayload);
 
-
-/*
-** Event Message IDs
-*/
-
-#define MQTT_TOPIC_RATE_INDEX_ERR_EID         (MQTT_TOPIC_RATE_BASE_EID + 0)
-#define MQTT_TOPIC_RATE_DUMP_ERR_EID          (MQTT_TOPIC_RATE_BASE_EID + 1)
-#define MQTT_TOPIC_RATE_LOAD_ERR_EID          (MQTT_TOPIC_RATE_BASE_EID + 2)
-#define MQTT_TOPIC_RATE_JSON_TO_CCSDS_ERR_EID (MQTT_TOPIC_RATE_BASE_EID + 3)
 
 /**********************/
-/** Type Definitions **/
+/** Global File Data **/
 /**********************/
 
+static MQTT_TOPIC_RATE_Class_t* MqttTopicRate = NULL;
 
-/******************************************************************************
-** Telemetry
-** 
-*/
+static MQTT_TOPIC_RATE_Data_t RateData; /* Working buffer for loads */
 
-typedef struct
+static CJSON_Obj_t JsonTblObjs[] = 
 {
 
-   float  X;
-   float  Y;
-   float  Z;
-
-} MQTT_TOPIC_RATE_Data_t;
-
-typedef struct
-{
+   /* Table           Table                                      core-json      length of query      */
+   /* Data Address,   Data Length,  Updated, Data Type,  Float,  query string,  string(exclude '\0') */
    
-   CFE_MSG_TelemetryHeader_t  TelemetryHeader;
-   MQTT_TOPIC_RATE_Data_t     Payload;
-
-} MQTT_TOPIC_RATE_TlmMsg_t;
-
-
-typedef struct
-{
-
-   /*
-   ** Rate Telemetry
-   */
+   { &RateData.X,     4,            false,   JSONNumber, true,   { "rate.x",    (sizeof("rate.x")-1)} },
+   { &RateData.Y,     4,            false,   JSONNumber, true,   { "rate.y",    (sizeof("rate.y")-1)} },
+   { &RateData.Z,     4,            false,   JSONNumber, true,   { "rate.z",    (sizeof("rate.z")-1)} }
    
-   MQTT_TOPIC_RATE_TlmMsg_t  TlmMsg;
-   
-   /*
-   ** Standard CJSON table data
-   */
-   
-   const char*  AppName;
-   bool         Loaded;   /* Has entire table been loaded? */
-   uint8        LastLoadStatus;
-   uint16       LastLoadCnt;
-   
-   size_t       JsonObjCnt;
-   char         JsonBuf[MQTT_TOPIC_TBL_JSON_FILE_MAX_CHAR];   
-   size_t       JsonFileLen;
-   
-} MQTT_TOPIC_RATE_Class_t;
-
-
-/************************/
-/** Exported Functions **/
-/************************/
+};
 
 
 /******************************************************************************
@@ -115,7 +67,19 @@ typedef struct
 **   None
 **
 */
-void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *TopicMgrPtr, CFE_SB_MsgId_t Mid);
+void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr, 
+                                 CFE_SB_MsgId_t TlmMsgMid)
+{
+
+   MqttTopicRate = MqttTopicRatePtr;
+   memset(MqttTopicRate, 0, sizeof(MQTT_TOPIC_RATE_Class_t));
+
+   MqttTopicRate->JsonObjCnt = (sizeof(JsonTblObjs)/sizeof(CJSON_Obj_t));
+   
+   CFE_MSG_Init(CFE_MSG_PTR(MqttTopicRate->TlmMsg), TlmMsgMid, 
+                            sizeof(MQTT_TOPIC_RATE_TlmMsg_t));
+   
+} /* End MQTT_TOPIC_RATE_Constructor() */
 
 
 /******************************************************************************
@@ -124,7 +88,30 @@ void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *TopicMgrPtr, CFE_SB_Ms
 ** Convert a cFE rate message to a JSON topic message 
 **
 */
-bool MQTT_TOPIC_RATE_CfeToJson(char *JsonMsg, const CFE_MSG_Message_t *CfeMsg);
+bool MQTT_TOPIC_RATE_CfeToJson(char **JsonPayload, const CFE_MSG_Message_t *CfeMsg)
+{
+
+   bool  RetStatus = false;
+   int   PayloadLen; 
+   const MQTT_TOPIC_RATE_TlmMsg_t *RateMsg = (MQTT_TOPIC_RATE_TlmMsg_t*)CfeMsg;
+   
+   *JsonPayload = NULL;
+   
+   PayloadLen = sprintf(MqttTopicRate->JsonMsgPayload,
+                "{\"rate\":{\"x\": %0.6f,\"y\": %0.6f,\"z\": %0.6f}}",
+                RateMsg->Payload.X, RateMsg->Payload.Y, RateMsg->Payload.Z);
+
+   if (PayloadLen > 0)
+   {
+      *JsonPayload = MqttTopicRate->JsonMsgPayload;
+   
+      ++MqttTopicRate->CfeToJsonCnt;
+      RetStatus = true;
+   }
+   
+   return RetStatus;
+   
+} /* End MQTT_TOPIC_RATE_CfeToJson() */
 
 
 /******************************************************************************
@@ -133,7 +120,59 @@ bool MQTT_TOPIC_RATE_CfeToJson(char *JsonMsg, const CFE_MSG_Message_t *CfeMsg);
 ** Convert a JSON rate topic message to a cFE rate message 
 **
 */
-bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsg);
+bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload)
+{
+   
+   bool RetStatus = false;
+   
+   *CfeMsg = NULL;
+   
+   if (LoadJsonData(JsonMsgPayload))
+   {
+      *CfeMsg = (CFE_MSG_Message_t *)&MqttTopicRate->TlmMsg;
+
+      ++MqttTopicRate->JsonToCfeCnt;
+      RetStatus = true;
+   }
+
+   return RetStatus;
+   
+} /* End MQTT_TOPIC_RATE_JsonToCfe() */
 
 
-#endif /* _mqtt_topic_tbl_ */
+
+/******************************************************************************
+** Function: LoadJsonData
+**
+** Notes:
+**  1. See file prologue for full/partial table load scenarios
+*/
+static bool LoadJsonData(const char *JsonMsgPayload)
+{
+
+   bool      RetStatus = false;
+   size_t    ObjLoadCnt;
+
+   memset(&MqttTopicRate->TlmMsg.Payload, 0, sizeof(MQTT_TOPIC_RATE_Data_t));
+   
+   ObjLoadCnt = CJSON_LoadObjArray(JsonTblObjs, MqttTopicRate->JsonObjCnt, 
+                                  JsonMsgPayload, sizeof(JsonMsgPayload));
+
+   if (ObjLoadCnt == MqttTopicRate->JsonObjCnt)
+   {
+
+      memcpy(&MqttTopicRate->TlmMsg.Payload, &RateData, sizeof(MQTT_TOPIC_RATE_Data_t));
+      RetStatus = true;
+   
+   }
+   else
+   {
+      CFE_EVS_SendEvent(MQTT_TOPIC_RATE_JSON_TO_CCSDS_ERR_EID, CFE_EVS_EventType_ERROR, 
+                        "Error processing rate topic, payload contained %d of %d data objects",
+                        (unsigned int)ObjLoadCnt, (unsigned int)MqttTopicRate->JsonObjCnt);
+   }
+   
+   return RetStatus;
+   
+} /* End LoadJsonData() */
+

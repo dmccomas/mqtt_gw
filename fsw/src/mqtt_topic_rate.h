@@ -43,10 +43,8 @@
 ** Event Message IDs
 */
 
-#define MQTT_TOPIC_RATE_INDEX_ERR_EID         (MQTT_TOPIC_RATE_BASE_EID + 0)
-#define MQTT_TOPIC_RATE_DUMP_ERR_EID          (MQTT_TOPIC_RATE_BASE_EID + 1)
-#define MQTT_TOPIC_RATE_LOAD_ERR_EID          (MQTT_TOPIC_RATE_BASE_EID + 2)
-#define MQTT_TOPIC_RATE_JSON_TO_CCSDS_ERR_EID (MQTT_TOPIC_RATE_BASE_EID + 3)
+#define MQTT_TOPIC_RATE_JSON_TO_CCSDS_ERR_EID (MQTT_TOPIC_RATE_BASE_EID + 0)
+
 
 /**********************/
 /** Type Definitions **/
@@ -84,19 +82,18 @@ typedef struct
    */
    
    MQTT_TOPIC_RATE_TlmMsg_t  TlmMsg;
+   char                      JsonMsgPayload[1024];
    
    /*
-   ** Standard CJSON table data
+   ** Subset of the standard CJSON table data because this isn't using the OSK
+   ** table manager service, but is using core-json in the same way as an OSK
+   ** table.
    */
+   size_t  JsonObjCnt;
+
+   uint32  CfeToJsonCnt;
+   uint32  JsonToCfeCnt;
    
-   const char*  AppName;
-   bool         Loaded;   /* Has entire table been loaded? */
-   uint8        LastLoadStatus;
-   uint16       LastLoadCnt;
-   
-   size_t       JsonObjCnt;
-   char         JsonBuf[MQTT_TOPIC_TBL_JSON_FILE_MAX_CHAR];   
-   size_t       JsonFileLen;
    
 } MQTT_TOPIC_RATE_Class_t;
 
@@ -115,7 +112,8 @@ typedef struct
 **   None
 **
 */
-void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *TopicMgrPtr, CFE_SB_MsgId_t Mid);
+void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr,
+                                 CFE_SB_MsgId_t TlmMsgMid);
 
 
 /******************************************************************************
@@ -124,7 +122,7 @@ void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *TopicMgrPtr, CFE_SB_Ms
 ** Convert a cFE rate message to a JSON topic message 
 **
 */
-bool MQTT_TOPIC_RATE_CfeToJson(char *JsonMsg, const CFE_MSG_Message_t *CfeMsg);
+bool MQTT_TOPIC_RATE_CfeToJson(char **JsonPayload, const CFE_MSG_Message_t *CfeMsg);
 
 
 /******************************************************************************
@@ -133,7 +131,7 @@ bool MQTT_TOPIC_RATE_CfeToJson(char *JsonMsg, const CFE_MSG_Message_t *CfeMsg);
 ** Convert a JSON rate topic message to a cFE rate message 
 **
 */
-bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsg);
+bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload);
 
 
-#endif /* _mqtt_topic_tbl_ */
+#endif /* _mqtt_topic_rate_ */

@@ -100,7 +100,7 @@ typedef MQTT_TOPIC_TBL_Data_t* (*MQTT_TOPIC_TBL_GetDataPtr_t)(void);
 */
 
 typedef bool (*MQTT_TOPIC_TBL_JsonToCfe_t)(CFE_MSG_Message_t **CfeMsg, const char *JsonMsg);
-typedef bool (*MQTT_TOPIC_TBL_CfeToJson_t)(char *JsonMsg, const CFE_MSG_Message_t *CfeMsg);
+typedef bool (*MQTT_TOPIC_TBL_CfeToJson_t)(char **JsonMsg, const CFE_MSG_Message_t *CfeMsg);
 
 typedef struct
 {

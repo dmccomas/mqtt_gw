@@ -59,22 +59,22 @@ void MQTT_MGR_Constructor(MQTT_MGR_Class_t *MqttMgrPtr,
                           const INITBL_Class_t *IniTbl, TBLMGR_Class_t *TblMgr)
 {
 
-   MgttMgr = MqttMgrPtr;
+   MqttMgr = MqttMgrPtr;
    
-   memset(MgttMgr, 0, sizeof( MQTT_MGR_Class_t));
+   memset(MqttMgr, 0, sizeof( MQTT_MGR_Class_t));
    
-   MgttMgr->MqttYieldTime = INITBL_GetIntConfig(IniTbl, CFG_MQTT_CLIENT_YIELD_TIME);
-   MgttMgr->SbPendTime    = INITBL_GetIntConfig(IniTbl, CFG_TOPIC_PIPE_PEND_TIME);
+   MqttMgr->MqttYieldTime = INITBL_GetIntConfig(IniTbl, CFG_MQTT_CLIENT_YIELD_TIME);
+   MqttMgr->SbPendTime    = INITBL_GetIntConfig(IniTbl, CFG_TOPIC_PIPE_PEND_TIME);
    
    CFE_SB_CreatePipe(&MqttMgr->TopicPipe, INITBL_GetIntConfig(IniTbl, CFG_TOPIC_PIPE_DEPTH),
                      INITBL_GetStrConfig(IniTbl, CFG_TOPIC_PIPE_NAME));
    
    MQTT_CLIENT_Constructor(&MqttMgr->MqttClient, IniTbl);
 
-   MSG_TRANS_Constructor(&MqttMgr->MsgTrans, IniTbl);
+   MSG_TRANS_Constructor(&MqttMgr->MsgTrans, IniTbl, TblMgr);
 
-   SubcribeToMessages(INITBL_GetIntConfig(IniTbl, CFG_TOPIC_MSG_MID));
-                  
+   SubscribeToMessages(INITBL_GetIntConfig(IniTbl, CFG_TOPIC_MSG_MID));
+      
 } /* End MQTT_MGR_Constructor() */
 
 
@@ -93,7 +93,7 @@ void MQTT_MGR_ProcessSbTopics(uint32 PerfId)
    do 
    {
       CFE_ES_PerfLogExit(PerfId);
-      SbStatus = CFE_SB_ReceiveBuffer(&SbBufPtr, MqttMgr.TopicPipe, MgttMgr->SbPendTime);
+      SbStatus = CFE_SB_ReceiveBuffer(&SbBufPtr, MqttMgr->TopicPipe, MqttMgr->SbPendTime);
       CFE_ES_PerfLogEntry(PerfId);
    
       if (SbStatus == CFE_SUCCESS)
@@ -113,9 +113,11 @@ void MQTT_MGR_ProcessSbTopics(uint32 PerfId)
 bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr)
 {
 
-   MQTT_CLIENT_Yield(MgttMgr->MqttYieldTime);
+   MQTT_CLIENT_Yield(MqttMgr->MqttYieldTime);
 
-} /* End MQTT_MGR_ChildTaskCallback();
+   return true;
+   
+} /* End MQTT_MGR_ChildTaskCallback() */
 
 
 /******************************************************************************
@@ -148,41 +150,48 @@ static void SubscribeToMessages(uint32 TopicBaseMid)
    uint16 MqttSubscribeCnt = 0;
    uint16 SubscribeErr = 0;
    
-   MQTT_TOPIC_TBL_Entry_t TopicTblEntry;
+   const MQTT_TOPIC_TBL_Entry_t *TopicTblEntry;
    
    for (i=0; i < MQTT_TOPIC_TBL_MAX_TOPICS; i++)
    {
-   
+
       TopicTblEntry = MQTT_TOPIC_TBL_GetEntry(i);
-      if (TopicTblEntry->Id != MQTT_TOPIC_TBL_UNUSED_ID)
+      if (TopicTblEntry != NULL)   
       {
-         if (strcmp(TopicTblEntry->SbRole,"pub") == 0)
+         if (TopicTblEntry->Id != MQTT_TOPIC_TBL_UNUSED_ID)
          {
-            ++SbSubscribeCnt;
-            CFE_SB_Subscribe(CFE_SB_ValueToMsgId(TopicBaseMid+i),
-                             MqttMgr->TopicPipe);
-         }
-         else
-         {
-            /* MQTTlib does not store a copy of topic so it must be in persistent memory */
-            if MQTT_CLIENT_Subscribe(TopicTblEntry->Name, MQTT_CLIENT_QOS2, 
-                                  MSG_TRANS_ProcessMqttMsg)
+
+            if (strcmp(TopicTblEntry->SbRole,"sub") == 0)
             {
-               ++MqttSubscribeCnt;
+
+               ++SbSubscribeCnt;
+               CFE_SB_Subscribe(CFE_SB_ValueToMsgId(TopicBaseMid+i),
+                                MqttMgr->TopicPipe);
             }
             else
             {
-               ++SubscribeErr;
-               CFE_EVS_SendEvent(MQTT_MGR_SUBSCRIBE_ERR_EID, CFE_EVS_EventType_INFORMATION, 
-                       "Error subscrining to MQTT client for topic %s", TopicTblEntry->Name);
+               /* MQTTlib does not store a copy of topic so it must be in persistent memory */
+               if (MQTT_CLIENT_Subscribe(TopicTblEntry->Name, MQTT_CLIENT_QOS2, 
+                                         MSG_TRANS_ProcessMqttMsg))
+               {
+                  ++MqttSubscribeCnt;
+                  CFE_EVS_SendEvent(MQTT_MGR_SUBSCRIBE_EID, CFE_EVS_EventType_INFORMATION, 
+                          "Subscribed to MQTT client for topic %s", TopicTblEntry->Name);
+               }
+               else
+               {
+                  ++SubscribeErr;
+                  CFE_EVS_SendEvent(MQTT_MGR_SUBSCRIBE_ERR_EID, CFE_EVS_EventType_ERROR, 
+                          "Error subscribing to MQTT client for topic %s", TopicTblEntry->Name);
+               }
             }
-         }
-      } /* End if toopic in use */
+         } /* End if not NULL */
+      } /* End if topic in use */
   
    } /* End topic loop */
     
    CFE_EVS_SendEvent(MQTT_MGR_SUBSCRIBE_EID, CFE_EVS_EventType_INFORMATION, 
-                     "Subscribed to %d topics on SB and %d topics on MQTT with %d errors",
+                     "Topic subscriptions: SB %d, MQTT %d, Errors %d",
                      SbSubscribeCnt, MqttSubscribeCnt, SubscribeErr);
  
 } /* End SubscribeToMessages() */
