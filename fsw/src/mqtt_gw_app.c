@@ -102,10 +102,10 @@ void MQTT_GW_AppMain(void)
    {
       
       /*
-      ** Since the app is data driven pend on SB topic
-      ** and poll the command pipe at a lower rate
+      ** Since the app is data driven MQTT_MGR_Execute() pends on SB for topic messages
+      ** and the command pipe is polled below at a lower rate
       */ 
-      MQTT_MGR_ProcessSbTopics(MqttGw.PerfId);
+      MQTT_MGR_Execute(MqttGw.PerfId);
       if (++MqttGw.PollCmdCnt > MqttGw.PollCmdInterval)
       {
           MqttGw.PollCmdCnt = 0;
@@ -219,6 +219,8 @@ static int32 InitApp(void)
    if (INITBL_Constructor(INITBL_OBJ, MQTT_GW_INI_FILENAME, &IniCfgEnum))
    {
    
+OS_printf("MQTT_GW_RATE_TLM_MID  = 0x%04X\n", MQTT_GW_RATE_TLM_MID); 
+OS_printf("MQTT_GW_CMD_MID  = 0x%04X\n", MQTT_GW_CMD_MID);
       /* Pool for a command every 2 seconds */
       MqttGw.PollCmdInterval = 2000 / INITBL_GetIntConfig(INITBL_OBJ, CFG_TOPIC_PIPE_PEND_TIME);
       MqttGw.PollCmdCnt = 0;

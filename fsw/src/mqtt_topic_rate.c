@@ -34,7 +34,7 @@
 /** Local File Function Prototypes **/
 /************************************/
 
-static bool LoadJsonData(const char *JsonMsgPayload);
+static bool LoadJsonData(const char *JsonMsgPayload, uint16 PayloadLen);
 
 
 /**********************/
@@ -120,14 +120,15 @@ bool MQTT_TOPIC_RATE_CfeToJson(char **JsonPayload, const CFE_MSG_Message_t *CfeM
 ** Convert a JSON rate topic message to a cFE rate message 
 **
 */
-bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload)
+bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, 
+                               const char *JsonMsgPayload, uint16 PayloadLen)
 {
    
    bool RetStatus = false;
    
    *CfeMsg = NULL;
    
-   if (LoadJsonData(JsonMsgPayload))
+   if (LoadJsonData(JsonMsgPayload, PayloadLen))
    {
       *CfeMsg = (CFE_MSG_Message_t *)&MqttTopicRate->TlmMsg;
 
@@ -147,16 +148,16 @@ bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPa
 ** Notes:
 **  1. See file prologue for full/partial table load scenarios
 */
-static bool LoadJsonData(const char *JsonMsgPayload)
+static bool LoadJsonData(const char *JsonMsgPayload, uint16 PayloadLen)
 {
 
    bool      RetStatus = false;
    size_t    ObjLoadCnt;
 
    memset(&MqttTopicRate->TlmMsg.Payload, 0, sizeof(MQTT_TOPIC_RATE_Data_t));
-   
+OS_printf("LoadJsonData() %s, %d\n",JsonMsgPayload, PayloadLen);
    ObjLoadCnt = CJSON_LoadObjArray(JsonTblObjs, MqttTopicRate->JsonObjCnt, 
-                                  JsonMsgPayload, sizeof(JsonMsgPayload));
+                                  JsonMsgPayload, PayloadLen);
 
    if (ObjLoadCnt == MqttTopicRate->JsonObjCnt)
    {

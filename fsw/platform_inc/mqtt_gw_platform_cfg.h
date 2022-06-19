@@ -32,7 +32,7 @@
 */
 
 #include "mqtt_gw_mission_cfg.h"
-
+#include "mqtt_gw_msgids.h"
 
 /******************************************************************************
 ** Platform Deployment Configurations

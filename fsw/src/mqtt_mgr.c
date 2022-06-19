@@ -32,10 +32,11 @@
 #include "mqtt_mgr.h"
 
 
-/**********************/
-/** File Global Data **/
-/**********************/
+/*******************************/
+/** Local Function Prototypes **/
+/*******************************/
 
+static void ProcessSbTopicMsgs(uint32 PerfId);
 static void SubscribeToMessages(uint32 TopicBaseMid);
 
 
@@ -78,13 +79,110 @@ void MQTT_MGR_Constructor(MQTT_MGR_Class_t *MqttMgrPtr,
 } /* End MQTT_MGR_Constructor() */
 
 
+
 /******************************************************************************
-** Function: MQTT_MGR_ProcessSbTopics
-**
-** Pend with timeout for topic messages sent on the software bus
+** Function: MQTT_MGR_ChildTaskCallback
 **
 */
-void MQTT_MGR_ProcessSbTopics(uint32 PerfId)
+bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr)
+{
+
+   MQTT_CLIENT_Yield(MqttMgr->MqttYieldTime);
+
+   return true;
+   
+} /* End MQTT_MGR_ChildTaskCallback() */
+
+
+
+/******************************************************************************
+** Function: MQTT_MGR_ConfigSbTopicTest
+**
+** TODO: Define command parameters in EDS
+*/
+bool MQTT_MGR_ConfigSbTopicTest(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
+{
+
+   const MQTT_GW_ConfigSbTopicTest_Payload_t *ConfigSbTopicTestCmd = CMDMGR_PAYLOAD_PTR(MsgPtr, MQTT_GW_ConfigSbTopicTest_t);
+   bool RetStatus = false;
+
+   if (MQTT_TOPIC_TBL_ValidId(ConfigSbTopicTestCmd->Id))
+   {
+      if (ConfigSbTopicTestCmd->Action == 1)
+      {
+         MqttMgr->SbTopicTestId = ConfigSbTopicTestCmd->Id;
+         MqttMgr->SbTopicTestActive = true;
+         RetStatus = true;
+         CFE_EVS_SendEvent(MQTT_MGR_CONFIG_TEST_EID, CFE_EVS_EventType_INFORMATION, 
+                           "Started SB test for topic ID %d", ConfigSbTopicTestCmd->Id);
+      }
+      else if (ConfigSbTopicTestCmd->Action == 1)
+      {
+         MqttMgr->SbTopicTestId = ConfigSbTopicTestCmd->Id;
+         MqttMgr->SbTopicTestActive = false;
+         RetStatus = true;
+         CFE_EVS_SendEvent(MQTT_MGR_CONFIG_TEST_EID, CFE_EVS_EventType_INFORMATION, 
+                           "Stopped SB test for topic ID %d", ConfigSbTopicTestCmd->Id);
+      }
+      else
+      {
+         CFE_EVS_SendEvent(MQTT_MGR_CONFIG_TEST_ERR_EID, CFE_EVS_EventType_ERROR, 
+                           "Configured SB topic test command rejected. Invalid start/stop parameter %d", 
+                           ConfigSbTopicTestCmd->Action);
+      
+      }
+   }
+   else
+   {
+      CFE_EVS_SendEvent(MQTT_MGR_CONFIG_TEST_ERR_EID, CFE_EVS_EventType_ERROR, 
+                        "Configured SB topic test command rejected. Id %d either invalid or not loaded", 
+                        ConfigSbTopicTestCmd->Id);
+
+   }
+  
+   return RetStatus;
+   
+} /* End MQTT_MGR_ConfigSbTopicTest() */
+
+/******************************************************************************
+** Function: MQTT_MGR_Execute
+**
+** Perform management functions that need to be performed on a periodic basis.
+**
+*/
+void MQTT_MGR_Execute(uint32 PerfId)
+{
+
+   ProcessSbTopicMsgs(PerfId);
+   
+   if (MqttMgr->SbTopicTestActive)
+   {
+      MQTT_TOPIC_TBL_RunSbMsgTest(MqttMgr->SbTopicTestId);
+   }
+
+} /* End MQTT_MGR_Execute() */
+
+
+/******************************************************************************
+** Function: MQTT_MGR_ResetStatus
+**
+** Reset counters and status flags to a known reset state.
+**
+*/
+void MQTT_MGR_ResetStatus(void)
+{
+
+   MQTT_CLIENT_ResetStatus();
+   MSG_TRANS_ResetStatus();
+
+} /* End MQTT_MGR_ResetStatus() */
+
+
+/******************************************************************************
+** Function: ProcessSbTopicMsgs
+**
+*/
+static void ProcessSbTopicMsgs(uint32 PerfId)
 {
 
    int32  SbStatus;
@@ -103,36 +201,7 @@ void MQTT_MGR_ProcessSbTopics(uint32 PerfId)
       
    } while(SbStatus == CFE_SUCCESS);
    
-} /* End MQTT_MGR_ProcessSbTopics() */
-
-
-/******************************************************************************
-** Function: MQTT_MGR_ChildTaskCallback
-**
-*/
-bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr)
-{
-
-   MQTT_CLIENT_Yield(MqttMgr->MqttYieldTime);
-
-   return true;
-   
-} /* End MQTT_MGR_ChildTaskCallback() */
-
-
-/******************************************************************************
-** Function: MQTT_MGR_ResetStatus
-**
-** Reset counters and status flags to a known reset state.
-**
-*/
-void MQTT_MGR_ResetStatus(void)
-{
-
-   MQTT_CLIENT_ResetStatus();
-   MSG_TRANS_ResetStatus();
-
-} /* End MQTT_MGR_ResetStatus() */
+} /* End ProcessSbTopicMsgs() */
 
 
 /******************************************************************************

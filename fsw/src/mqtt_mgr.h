@@ -50,8 +50,10 @@
 ** Event Message IDs
 */
 
-#define MQTT_MGR_SUBSCRIBE_EID      (MQTT_MGR_BASE_EID + 0)
-#define MQTT_MGR_SUBSCRIBE_ERR_EID  (MQTT_MGR_BASE_EID + 1)
+#define MQTT_MGR_SUBSCRIBE_EID        (MQTT_MGR_BASE_EID + 0)
+#define MQTT_MGR_SUBSCRIBE_ERR_EID    (MQTT_MGR_BASE_EID + 1)
+#define MQTT_MGR_CONFIG_TEST_EID      (MQTT_MGR_BASE_EID + 2)
+#define MQTT_MGR_CONFIG_TEST_ERR_EID  (MQTT_MGR_BASE_EID + 3)
 
 
 /**********************/
@@ -68,6 +70,8 @@ typedef struct
    
    CFE_SB_PipeId_t TopicPipe;
    
+   bool    SbTopicTestActive;
+   uint16  SbTopicTestId;
    /*
    ** Contained Objects
    */
@@ -97,19 +101,43 @@ void MQTT_MGR_Constructor(MQTT_MGR_Class_t *MqttMgrPtr,
 
 
 /******************************************************************************
-** Function: MQTT_MGR_ProcessSbTopics
-**
-** Pend with timeout for topic messages sent on the software bus
-**
-*/
-void MQTT_MGR_ProcessSbTopics(uint32 PerfId);
-
-
-/******************************************************************************
 ** Function: MQTT_MGR_ChildTaskCallback
 **
 */
 bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr);
+
+
+/******************************************************************************
+** Function: MQTT_MGR_ConfigSbTopicTest
+**
+** Start/stop a topic test. 
+**
+** Notes:
+**   1. Topic tests verify the topic SB-to-MQTT translation path. The tests 
+**      create and send SB topic messages. These messages are looped back
+**      to MQTT_GW whcih causes the CfeToJson transaltion to occur. The tests
+**      are continuously run by MQTT_MGR_Execute() until they are commanded
+**      to stop. 
+**   2. In addition to testing the tranlation process they are useful for 
+**      verifying web apps that are processing the MQTT messages.
+*/
+bool MQTT_MGR_ConfigSbTopicTest(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
+
+
+/******************************************************************************
+** Function: MQTT_MGR_Execute
+**
+** Perform management functions that need to be performed on a periodic basis.
+**
+** Notes:
+**   1. This function is designed to be continuously called from the app's main
+**      loop so it pends with a timeout on the SB
+**   2. In normal operations it receives topic messages from the SB and 
+**      creates/sends corresponding MQTT JSON messages to the MQTT_CLIENT. It 
+**      also has test modes of operation.
+**
+*/
+void MQTT_MGR_Execute(uint32 PerfId);
 
 
 /******************************************************************************

@@ -40,7 +40,6 @@
 
 static bool LoadJsonData(size_t JsonFileLen);
 
-
 /**********************/
 /** Global File Data **/
 /**********************/
@@ -76,13 +75,13 @@ static CJSON_Obj_t JsonTblObjs[] =
 ** The indices into this table must match the topic IDs in the mqtt_topic-json file
 */
 
-static MQTT_TOPIC_TBL_ConvertFunc_t ConvertFunc[] =
+static MQTT_TOPIC_TBL_VirtualFunc_t VirtualFunc[] =
 {
-   { MQTT_TOPIC_RATE_CfeToJson, MQTT_TOPIC_RATE_JsonToCfe },
-   { NULL, NULL },
-   { NULL, NULL },
-   { NULL, NULL },
-   { NULL, NULL }
+   { MQTT_TOPIC_RATE_CfeToJson, MQTT_TOPIC_RATE_JsonToCfe, NULL },
+   { NULL, NULL, NULL },
+   { NULL, NULL, NULL },
+   { NULL, NULL, NULL },
+   { NULL, NULL, NULL }
    
 };
 
@@ -115,151 +114,6 @@ void MQTT_TOPIC_TBL_Constructor(MQTT_TOPIC_TBL_Class_t *MqttTopicTblPtr,
    
    
 } /* End MQTT_TOPIC_TBL_Constructor() */
-
-
-/******************************************************************************
-** Function: MQTT_TOPIC_TBL_GetEntry
-**
-** Return a pointer to the table entry ide=entified by 'i'.
-** 
-** Notes:
-**   1. i must be less than MQTT_TOPIC_TBL_MAX_TOPICS
-**
-*/
-const MQTT_TOPIC_TBL_Entry_t *MQTT_TOPIC_TBL_GetEntry(uint8 Idx)
-{
-
-   MQTT_TOPIC_TBL_Entry_t *Entry = NULL;
-   
-   if (Idx < MQTT_TOPIC_TBL_MAX_TOPICS)
-   {
-      if (MqttTopicTbl->Data.Entry[Idx].Id != MQTT_TOPIC_TBL_UNUSED_ID)
-      {
-         Entry = &MqttTopicTbl->Data.Entry[Idx];
-      }
-   }
-   else
-   {
-      CFE_EVS_SendEvent(MQTT_TOPIC_TBL_INDEX_ERR_EID, CFE_EVS_EventType_ERROR, 
-                        "Table index %d is out of range. It must less than %d",
-                        Idx, MQTT_TOPIC_TBL_MAX_TOPICS);
-   }
-
-   return Entry;
-   
-} /* End MQTT_TOPIC_TBL_GetEntry() */
-
-
-/******************************************************************************
-** Function: MQTT_TOPIC_TBL_GetCfeToJson
-**
-** Return a pointer to the CfeToJson conversion function for 'Idx'.
-** 
-** Notes:
-**   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
-**
-*/
-MQTT_TOPIC_TBL_CfeToJson_t MQTT_TOPIC_TBL_GetCfeToJson(uint8 Idx)
-{
-
-   MQTT_TOPIC_TBL_CfeToJson_t CfeToJsonFunc = NULL;
-   
-   if (Idx < MQTT_TOPIC_TBL_MAX_TOPICS)
-   {
-      if (MqttTopicTbl->Data.Entry[Idx].Id != MQTT_TOPIC_TBL_UNUSED_ID)
-      {
-         CfeToJsonFunc = ConvertFunc[Idx].CfeToJson;
-      }
-   }
-   else
-   {
-      CFE_EVS_SendEvent(MQTT_TOPIC_TBL_INDEX_ERR_EID, CFE_EVS_EventType_ERROR, 
-                        "Table index %d is out of range. It must less than %d",
-                        Idx, MQTT_TOPIC_TBL_MAX_TOPICS);
-   }
-
-   return CfeToJsonFunc;
-   
-} /* End MQTT_TOPIC_TBL_GetCfeToJson() */
-
-
-/******************************************************************************
-** Function: MQTT_TOPIC_TBL_GetJsonToCfe
-**
-** Return a pointer to the JsonToCfe conversion function for 'Idx'.
-** 
-** Notes:
-**   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
-**
-*/
-MQTT_TOPIC_TBL_JsonToCfe_t MQTT_TOPIC_TBL_GetJsonToCfe(uint8 Idx)
-{
-
-   MQTT_TOPIC_TBL_JsonToCfe_t JsonToCfeFunc = NULL;
-   
-   if (Idx < MQTT_TOPIC_TBL_MAX_TOPICS)
-   {
-      if (MqttTopicTbl->Data.Entry[Idx].Id != MQTT_TOPIC_TBL_UNUSED_ID)
-      {
-         JsonToCfeFunc = ConvertFunc[Idx].JsonToCfe;
-      }
-   }
-   else
-   {
-      CFE_EVS_SendEvent(MQTT_TOPIC_TBL_INDEX_ERR_EID, CFE_EVS_EventType_ERROR, 
-                        "Table index %d is out of range. It must less than %d",
-                        Idx, MQTT_TOPIC_TBL_MAX_TOPICS);
-   }
-
-   return JsonToCfeFunc;
-   
-} /* End MQTT_TOPIC_TBL_GetJsonToCfe() */
-
-
-/******************************************************************************
-** Function: MQTT_TOPIC_TBL_ResetStatus
-**
-*/
-void MQTT_TOPIC_TBL_ResetStatus(void)
-{
-
-   MqttTopicTbl->LastLoadStatus = TBLMGR_STATUS_UNDEF;
-   MqttTopicTbl->LastLoadCnt = 0;
- 
-} /* End MQTT_TOPIC_TBL_ResetStatus() */
-
-
-/******************************************************************************
-** Function: MQTT_TOPIC_TBL_LoadCmd
-**
-** Notes:
-**  1. Function signature must match TBLMGR_LoadTblFuncPtr_t.
-**  2. This could migrate into table manager but I think I'll keep it here so
-**     user's can add table processing code if needed.
-*/
-bool MQTT_TOPIC_TBL_LoadCmd(TBLMGR_Tbl_t* Tbl, uint8 LoadType, const char* Filename)
-{
-
-   bool  RetStatus = false;
-
-   if (CJSON_ProcessFile(Filename, MqttTopicTbl->JsonBuf, MQTT_TOPIC_TBL_JSON_FILE_MAX_CHAR, LoadJsonData))
-   {
-      
-      MqttTopicTbl->Loaded = true;
-      MqttTopicTbl->LastLoadStatus = TBLMGR_STATUS_VALID;
-      RetStatus = true;
-   
-   }
-   else
-   {
-
-      MqttTopicTbl->LastLoadStatus = TBLMGR_STATUS_INVALID;
-
-   }
-
-   return RetStatus;
-   
-} /* End MQTT_TOPIC_TBL_LoadCmd() */
 
 
 /******************************************************************************
@@ -340,10 +194,173 @@ bool MQTT_TOPIC_TBL_DumpCmd(TBLMGR_Tbl_t* Tbl, uint8 DumpType, const char* Filen
 
 
 /******************************************************************************
+** Function: MQTT_TOPIC_TBL_GetEntry
+**
+** Return a pointer to the table entry ide=entified by 'i'.
+** 
+** Notes:
+**   1. i must be less than MQTT_TOPIC_TBL_MAX_TOPICS
+**
+*/
+const MQTT_TOPIC_TBL_Entry_t *MQTT_TOPIC_TBL_GetEntry(uint8 Idx)
+{
+
+   MQTT_TOPIC_TBL_Entry_t *Entry = NULL;
+   
+   if (MQTT_TOPIC_TBL_ValidId(Idx))
+   {
+      Entry = &MqttTopicTbl->Data.Entry[Idx];
+   }
+
+   return Entry;
+   
+} /* End MQTT_TOPIC_TBL_GetEntry() */
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_GetCfeToJson
+**
+** Return a pointer to the CfeToJson conversion function for 'Idx'.
+** 
+** Notes:
+**   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
+**
+*/
+MQTT_TOPIC_TBL_CfeToJson_t MQTT_TOPIC_TBL_GetCfeToJson(uint8 Idx)
+{
+
+   MQTT_TOPIC_TBL_CfeToJson_t CfeToJsonFunc = NULL;
+   
+   if (MQTT_TOPIC_TBL_ValidId(Idx))
+   {
+         CfeToJsonFunc = VirtualFunc[Idx].CfeToJson;
+   }
+
+   return CfeToJsonFunc;
+   
+} /* End MQTT_TOPIC_TBL_GetCfeToJson() */
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_GetJsonToCfe
+**
+** Return a pointer to the JsonToCfe conversion function for 'Idx'.
+** 
+** Notes:
+**   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
+**
+*/
+MQTT_TOPIC_TBL_JsonToCfe_t MQTT_TOPIC_TBL_GetJsonToCfe(uint8 Idx)
+{
+
+   MQTT_TOPIC_TBL_JsonToCfe_t JsonToCfeFunc = NULL;
+   
+   if (MQTT_TOPIC_TBL_ValidId(Idx))
+   {
+      JsonToCfeFunc = VirtualFunc[Idx].JsonToCfe;
+   }
+
+   return JsonToCfeFunc;
+   
+} /* End MQTT_TOPIC_TBL_GetJsonToCfe() */
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_RunSbMsgTest
+**
+** Notes:
+**   1. Assumes Idx has been verified.
+**
+*/
+void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx)
+{
+
+   (VirtualFunc[Idx].SbMsgTest)();
+
+} /* End MQTT_TOPIC_TBL_RunSbMsgTest() */
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_LoadCmd
+**
+** Notes:
+**  1. Function signature must match TBLMGR_LoadTblFuncPtr_t.
+**  2. This could migrate into table manager but I think I'll keep it here so
+**     user's can add table processing code if needed.
+*/
+bool MQTT_TOPIC_TBL_LoadCmd(TBLMGR_Tbl_t* Tbl, uint8 LoadType, const char* Filename)
+{
+
+   bool  RetStatus = false;
+
+   if (CJSON_ProcessFile(Filename, MqttTopicTbl->JsonBuf, MQTT_TOPIC_TBL_JSON_FILE_MAX_CHAR, LoadJsonData))
+   {
+      
+      MqttTopicTbl->Loaded = true;
+      MqttTopicTbl->LastLoadStatus = TBLMGR_STATUS_VALID;
+      RetStatus = true;
+   
+   }
+   else
+   {
+
+      MqttTopicTbl->LastLoadStatus = TBLMGR_STATUS_INVALID;
+
+   }
+
+   return RetStatus;
+   
+} /* End MQTT_TOPIC_TBL_LoadCmd() */
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_ResetStatus
+**
+*/
+void MQTT_TOPIC_TBL_ResetStatus(void)
+{
+
+   MqttTopicTbl->LastLoadStatus = TBLMGR_STATUS_UNDEF;
+   MqttTopicTbl->LastLoadCnt = 0;
+ 
+} /* End MQTT_TOPIC_TBL_ResetStatus() */
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_ValidId
+**
+** In addition to being in range, valid means that the ID has been defined.
+*/
+bool MQTT_TOPIC_TBL_ValidId(uint8 Idx)
+{
+
+   bool RetStatus = false;
+   
+   if (Idx < MQTT_TOPIC_TBL_MAX_TOPICS)
+   {
+      if (MqttTopicTbl->Data.Entry[Idx].Id != MQTT_TOPIC_TBL_UNUSED_ID)
+      {
+         RetStatus = true;
+      }
+   }
+   else
+   {
+      CFE_EVS_SendEvent(MQTT_TOPIC_TBL_INDEX_ERR_EID, CFE_EVS_EventType_ERROR, 
+                        "Table index %d is out of range. It must less than %d",
+                        Idx, MQTT_TOPIC_TBL_MAX_TOPICS);
+   }
+
+   return RetStatus;
+   
+
+} /* End MQTT_TOPIC_TBL_ValidId() */
+
+
+/******************************************************************************
 ** Function: LoadJsonData
 **
 ** Notes:
-**  1. See file prologue for full/partial table load scenarios
+**   None
 */
 static bool LoadJsonData(size_t JsonFileLen)
 {
@@ -384,3 +401,6 @@ static bool LoadJsonData(size_t JsonFileLen)
    return RetStatus;
    
 } /* End LoadJsonData() */
+
+
+

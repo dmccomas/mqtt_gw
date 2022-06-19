@@ -96,19 +96,26 @@ typedef struct
 typedef MQTT_TOPIC_TBL_Data_t* (*MQTT_TOPIC_TBL_GetDataPtr_t)(void);
 
 /******************************************************************************
-** Conversion function callback signatures
+** Topic 'virtual' function signatures
+** - Using separate MQTT_TOPIC_xxx files for each topic type and this table
+**   below is mimicing an abstract base class with inheritance design
+** - Naming it MQTT_TOPIC_TBL_VirtualFunc_t complies with the naming OSK naming
+**   standard, but it's a little misleading because the MQTT_TOPIC_xxx objects
+**   are not designed as subclasses of MQTT_TOPIC_TBL.
 */
 
-typedef bool (*MQTT_TOPIC_TBL_JsonToCfe_t)(CFE_MSG_Message_t **CfeMsg, const char *JsonMsg);
+typedef bool (*MQTT_TOPIC_TBL_JsonToCfe_t)(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload, uint16 PayloadLen);
 typedef bool (*MQTT_TOPIC_TBL_CfeToJson_t)(char **JsonMsg, const CFE_MSG_Message_t *CfeMsg);
+typedef void (*MQTT_TOPIC_TBL_SbMsgTest_t)(void);
 
 typedef struct
 {
 
    MQTT_TOPIC_TBL_CfeToJson_t  CfeToJson;
    MQTT_TOPIC_TBL_JsonToCfe_t  JsonToCfe;  
+   MQTT_TOPIC_TBL_SbMsgTest_t  SbMsgTest;
 
-} MQTT_TOPIC_TBL_ConvertFunc_t; 
+} MQTT_TOPIC_TBL_VirtualFunc_t; 
 
 
 /******************************************************************************
@@ -161,6 +168,20 @@ void MQTT_TOPIC_TBL_Constructor(MQTT_TOPIC_TBL_Class_t *TopicMgrPtr,
 
 
 /******************************************************************************
+** Function: MQTT_TOPIC_TBL_DumpCmd
+**
+** Command to dump the table.
+**
+** Notes:
+**  1. Function signature must match TBLMGR_DumpTblFuncPtr_t.
+**  2. Can assume valid table file name because this is a callback from 
+**     the app framework table manager.
+**
+*/
+bool MQTT_TOPIC_TBL_DumpCmd(TBLMGR_Tbl_t *Tbl, uint8 DumpType, const char *Filename);
+
+
+/******************************************************************************
 ** Function: MQTT_TOPIC_TBL_GetEntry
 **
 ** Return a pointer to the table entry identified by 'Idx'.
@@ -197,17 +218,6 @@ MQTT_TOPIC_TBL_JsonToCfe_t MQTT_TOPIC_TBL_GetJsonToCfe(uint8 Idx);
 
 
 /******************************************************************************
-** Function: MQTT_TOPIC_TBL_ResetStatus
-**
-** Reset counters and status flags to a known reset state.  The behavior of
-** the table manager should not be impacted. The intent is to clear counters
-** and flags to a known default state for telemetry.
-**
-*/
-void MQTT_TOPIC_TBL_ResetStatus(void);
-
-
-/******************************************************************************
 ** Function: MQTT_TOPIC_TBL_LoadCmd
 **
 ** Command to load the table.
@@ -222,17 +232,34 @@ bool MQTT_TOPIC_TBL_LoadCmd(TBLMGR_Tbl_t *Tbl, uint8 LoadType, const char *Filen
 
 
 /******************************************************************************
-** Function: MQTT_TOPIC_TBL_DumpCmd
+** Function: MQTT_TOPIC_TBL_ResetStatus
 **
-** Command to dump the table.
-**
-** Notes:
-**  1. Function signature must match TBLMGR_DumpTblFuncPtr_t.
-**  2. Can assume valid table file name because this is a callback from 
-**     the app framework table manager.
+** Reset counters and status flags to a known reset state.  The behavior of
+** the table manager should not be impacted. The intent is to clear counters
+** and flags to a known default state for telemetry.
 **
 */
-bool MQTT_TOPIC_TBL_DumpCmd(TBLMGR_Tbl_t *Tbl, uint8 DumpType, const char *Filename);
+void MQTT_TOPIC_TBL_ResetStatus(void);
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_RunSbMsgTest
+**
+** Execute a topic's SB message test.
+** 
+** Notes:
+**   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
+**
+*/
+void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx);
+
+
+/******************************************************************************
+** Function: ValidId
+**
+** In addition to being in range, valid means that the ID has been defined.
+*/
+bool MQTT_TOPIC_TBL_ValidId(uint8 Idx);
 
 
 #endif /* _mqtt_topic_tbl_ */

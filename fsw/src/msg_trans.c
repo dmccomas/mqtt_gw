@@ -84,14 +84,15 @@ void MSG_TRANS_ProcessMqttMsg(MessageData* MsgData)
    
    MQTTMessage* MsgPtr = MsgData->message;
 
-   int16 i = 0;
-   int   TopicLen;
-   char  TopicStr[MQTT_TOPIC_TBL_MAX_TOPIC_LEN];
-   bool  MsgFound = false;
+   uint16  i = 0;
+   uint16  TopicLen;
+   char    TopicStr[MQTT_TOPIC_TBL_MAX_TOPIC_LEN];
+   bool    MsgFound = false;
    const MQTT_TOPIC_TBL_Entry_t *TopicTblEntry;
    MQTT_TOPIC_TBL_JsonToCfe_t JsonToCfe;
-   CFE_MSG_Message_t **CfeMsg;
-   
+   CFE_MSG_Message_t *CfeMsg;
+   CFE_SB_MsgId_t    MsgId = CFE_SB_INVALID_MSG_ID;
+      
 OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() ****************************\n");
    CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_INFORMATION,
                      "MSG_TRANS_ProcessMsg: Received topic %s", MsgData->topicName->lenstring.data);
@@ -135,11 +136,13 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
                        
          JsonToCfe = MQTT_TOPIC_TBL_GetJsonToCfe(i);    
          
-         if (JsonToCfe(CfeMsg, &MsgData->topicName->lenstring.data[TopicLen]))
+         if (JsonToCfe(&CfeMsg, &MsgData->topicName->lenstring.data[TopicLen], MsgPtr->payloadlen))
          {
       
+            CFE_MSG_GetMsgId(CfeMsg, &MsgId);
+      
             CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_INFORMATION,
-                              "MSG_TRANS_ProcessMqttMsg: Found message at index %d", i); 
+                              "MSG_TRANS_ProcessMqttMsg: Sending message 0x%04X", CFE_SB_MsgIdToValue(MsgId)); 
             
             CFE_SB_TimeStampMsg(CFE_MSG_PTR(CfeMsg));
             CFE_SB_TransmitMsg(CFE_MSG_PTR(CfeMsg), true);

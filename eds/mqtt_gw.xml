@@ -38,6 +38,14 @@
         </EnumerationList>
       </EnumeratedDataType>
 
+      <EnumeratedDataType name="TestAction" shortDescription="" >
+        <IntegerDataEncoding sizeInBits="16" encoding="unsigned" />
+        <EnumerationList>
+          <Enumeration label="Start" value="1" shortDescription="Start a test" />
+          <Enumeration label="Stop"  value="2" shortDescription="Stop a test" />
+        </EnumerationList>
+      </EnumeratedDataType>
+
       <!--***************************************-->
       <!--**** DataTypeSet: Command Payloads ****-->
       <!--***************************************-->
@@ -66,6 +74,13 @@
        </EntryList>
       </ContainerDataType>
 
+      <ContainerDataType name="ConfigSbTopicTest_Payload" shortDescription="Start or stop a SB topic test">
+        <EntryList>
+          <Entry name="Id"     type="BASE_TYPES/uint16" shortDescription="Topic identifier which is an index into the MQTT_TOPIC_TBL" />
+          <Entry name="Action" type="TestAction"        shortDescription="Start/stop a test" />
+       </EntryList>
+      </ContainerDataType>
+
       <!--*****************************************-->
       <!--**** DataTypeSet: Telemetry Payloads ****-->
       <!--*****************************************-->
@@ -76,6 +91,14 @@
           <Entry name="InvalidCmdCnt"       type="BASE_TYPES/uint16" />
           <Entry name="ChildValidCmdCnt"    type="BASE_TYPES/uint16" />
           <Entry name="ChildInvalidCmdCnt"  type="BASE_TYPES/uint16" />
+        </EntryList>
+      </ContainerDataType>
+
+      <ContainerDataType name="RateTlm_Payload" shortDescription="Spacecraft rates">
+        <EntryList>
+          <Entry name="X" type="BASE_TYPES/float"  />
+          <Entry name="Y" type="BASE_TYPES/float"  />
+          <Entry name="Z" type="BASE_TYPES/float"  />
         </EntryList>
       </ContainerDataType>
       
@@ -125,6 +148,15 @@
         </EntryList>
       </ContainerDataType>
 
+      <ContainerDataType name="ConfigSbTopicTest" baseType="CommandBase" shortDescription="Connect or reconnect to an MQTT broker">
+        <ConstraintSet>
+          <ValueConstraint entry="Sec.FunctionCode" value="${OSK_C_FW/APP_BASE_CC} + 1" />
+        </ConstraintSet>
+        <EntryList>
+          <Entry type="ConfigSbTopicTest_Payload" name="Payload" />
+        </EntryList>
+      </ContainerDataType>
+
       <!--****************************************-->
       <!--**** DataTypeSet: Telemetry Packets ****-->
       <!--****************************************-->
@@ -135,6 +167,12 @@
         </EntryList>
       </ContainerDataType>
      
+      <ContainerDataType name="RateTlm" baseType="CFE_HDR/TelemetryHeader">
+        <EntryList>
+          <Entry type="RateTlm_Payload" name="Payload" />
+        </EntryList>
+      </ContainerDataType>
+
     </DataTypeSet>
     
     <ComponentSet>
@@ -164,6 +202,12 @@
             </GenericTypeMapSet>
           </Interface>
 
+          <Interface name="RATE_TLM" shortDescription="Software bus housekeeping telemetry interface" type="CFE_SB/Telemetry">
+            <GenericTypeMapSet>
+              <GenericTypeMap name="TelemetryDataType" type="RateTlm" />
+            </GenericTypeMapSet>
+          </Interface>
+
         </RequiredInterfaceSet>
 
         <!--***************************************-->
@@ -175,12 +219,14 @@
             <Variable type="BASE_TYPES/uint16" readOnly="true" name="CmdTopicId"       initialValue="${CFE_MISSION/MQTT_GW_CMD_TOPICID}" />
             <Variable type="BASE_TYPES/uint16" readOnly="true" name="SendHkTopicId"    initialValue="${CFE_MISSION/MQTT_GW_SEND_HK_TOPICID}" />
             <Variable type="BASE_TYPES/uint16" readOnly="true" name="HkTlmTopicId"     initialValue="${CFE_MISSION/MQTT_GW_HK_TLM_TOPICID}" />
+            <Variable type="BASE_TYPES/uint16" readOnly="true" name="RateTlmTopicId"   initialValue="${CFE_MISSION/MQTT_GW_RATE_TLM_TOPICID}" />
           </VariableSet>
           <!-- Assign fixed numbers to the "TopicId" parameter of each interface -->
           <ParameterMapSet>          
             <ParameterMap interface="CMD"        parameter="TopicId" variableRef="CmdTopicId" />
             <ParameterMap interface="SEND_HK"    parameter="TopicId" variableRef="SendHkTopicId" />
             <ParameterMap interface="HK_TLM"     parameter="TopicId" variableRef="HkTlmTopicId" />
+            <ParameterMap interface="RATE_TLM"   parameter="TopicId" variableRef="RateTlmTopicId" />
           </ParameterMapSet>
         </Implementation>
       </Component>

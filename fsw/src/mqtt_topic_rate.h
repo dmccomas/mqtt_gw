@@ -121,6 +121,8 @@ void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr,
 **
 ** Convert a cFE rate message to a JSON topic message 
 **
+** Notes:
+**   1.  Signature must match MQTT_TOPIC_TBL_CfeToJson_t
 */
 bool MQTT_TOPIC_RATE_CfeToJson(char **JsonPayload, const CFE_MSG_Message_t *CfeMsg);
 
@@ -130,8 +132,11 @@ bool MQTT_TOPIC_RATE_CfeToJson(char **JsonPayload, const CFE_MSG_Message_t *CfeM
 **
 ** Convert a JSON rate topic message to a cFE rate message 
 **
+** Notes:
+**   1.  Signature must match MQTT_TOPIC_TBL_JsonToCfe_t
 */
-bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload);
+bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, 
+                               const char *JsonMsgPayload, uint16 PayloadLen);
 
 
 #endif /* _mqtt_topic_rate_ */
