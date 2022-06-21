@@ -50,28 +50,21 @@
 /** Type Definitions **/
 /**********************/
 
+typedef enum 
+{
+
+  MQTT_TOPIC_RATE_TEST_AXIS_X = 1,
+  MQTT_TOPIC_RATE_TEST_AXIS_Y = 2,
+  MQTT_TOPIC_RATE_TEST_AXIS_Z = 3
+  
+} MQTT_TOPIC_RATE_TestAxis_t;
 
 /******************************************************************************
 ** Telemetry
 ** 
+** MQTT_GW_RateTlm_t & MQTT_GW_RateTlm_Payload_t defined in EDS
 */
 
-typedef struct
-{
-
-   float  X;
-   float  Y;
-   float  Z;
-
-} MQTT_TOPIC_RATE_Data_t;
-
-typedef struct
-{
-   
-   CFE_MSG_TelemetryHeader_t  TelemetryHeader;
-   MQTT_TOPIC_RATE_Data_t     Payload;
-
-} MQTT_TOPIC_RATE_TlmMsg_t;
 
 
 typedef struct
@@ -81,8 +74,18 @@ typedef struct
    ** Rate Telemetry
    */
    
-   MQTT_TOPIC_RATE_TlmMsg_t  TlmMsg;
-   char                      JsonMsgPayload[1024];
+   MQTT_GW_RateTlm_t  TlmMsg;
+   char               JsonMsgTopic[MQTT_TOPIC_TBL_MAX_TOPIC_LEN];
+   char               JsonMsgPayload[1024];
+
+   /*
+   ** SB test puts rate on a single axis for N cycles
+   */
+   
+   MQTT_TOPIC_RATE_TestAxis_t  TestAxis;
+   uint16                      TestAxisCycleCnt;
+   uint16                      TestAxisCycleLim;
+   float                       TestAxisRate;
    
    /*
    ** Subset of the standard CJSON table data because this isn't using the OSK
@@ -113,7 +116,7 @@ typedef struct
 **
 */
 void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr,
-                                 CFE_SB_MsgId_t TlmMsgMid);
+                                 CFE_SB_MsgId_t TlmMsgMid, const char *Topic);
 
 
 /******************************************************************************
@@ -124,7 +127,8 @@ void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr,
 ** Notes:
 **   1.  Signature must match MQTT_TOPIC_TBL_CfeToJson_t
 */
-bool MQTT_TOPIC_RATE_CfeToJson(char **JsonPayload, const CFE_MSG_Message_t *CfeMsg);
+bool MQTT_TOPIC_RATE_CfeToJson(const char **JsonMsgTopic, const char **JsonMsgPayload,
+                               const CFE_MSG_Message_t *CfeMsg);
 
 
 /******************************************************************************
@@ -137,6 +141,15 @@ bool MQTT_TOPIC_RATE_CfeToJson(char **JsonPayload, const CFE_MSG_Message_t *CfeM
 */
 bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg, 
                                const char *JsonMsgPayload, uint16 PayloadLen);
+
+/******************************************************************************
+** Function: MQTT_TOPIC_RATE_SbMsgTest
+**
+** Generate and send SB rate topic messages on SB that are read back by MQTT_GW
+** and cause MQTT messages to be generated from the SB messages.  
+**
+*/
+void MQTT_TOPIC_RATE_SbMsgTest(bool Init);
 
 
 #endif /* _mqtt_topic_rate_ */

@@ -39,6 +39,10 @@
 /************************************/
 
 static bool LoadJsonData(size_t JsonFileLen);
+static bool StubCfeToJson(const char **JsonMsgTopic, const char **JsonMsgPayload, const CFE_MSG_Message_t *CfeMsg);
+static bool StubJsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload, uint16 PayloadLen);
+static void StubSbMsgTest(bool Init);
+
 
 /**********************/
 /** Global File Data **/
@@ -77,11 +81,11 @@ static CJSON_Obj_t JsonTblObjs[] =
 
 static MQTT_TOPIC_TBL_VirtualFunc_t VirtualFunc[] =
 {
-   { MQTT_TOPIC_RATE_CfeToJson, MQTT_TOPIC_RATE_JsonToCfe, NULL },
-   { NULL, NULL, NULL },
-   { NULL, NULL, NULL },
-   { NULL, NULL, NULL },
-   { NULL, NULL, NULL }
+   { MQTT_TOPIC_RATE_CfeToJson, MQTT_TOPIC_RATE_JsonToCfe, MQTT_TOPIC_RATE_SbMsgTest },
+   { StubCfeToJson, StubJsonToCfe, StubSbMsgTest },
+   { StubCfeToJson, StubJsonToCfe, StubSbMsgTest },
+   { StubCfeToJson, StubJsonToCfe, StubSbMsgTest },
+   { StubCfeToJson, StubJsonToCfe, StubSbMsgTest }
    
 };
 
@@ -109,8 +113,10 @@ void MQTT_TOPIC_TBL_Constructor(MQTT_TOPIC_TBL_Class_t *MqttTopicTblPtr,
       MqttTopicTbl->Data.Entry[i].Id = MQTT_TOPIC_TBL_UNUSED_ID;
    }
    
+   // TODO - Use topic definition from table in constructors
    MQTT_TOPIC_RATE_Constructor(&MqttTopicTbl->Rate, 
-                               CFE_SB_ValueToMsgId(TopicBaseMid+0));
+                               CFE_SB_ValueToMsgId(TopicBaseMid+0),
+                               "osk/rate");
    
    
 } /* End MQTT_TOPIC_TBL_Constructor() */
@@ -194,30 +200,6 @@ bool MQTT_TOPIC_TBL_DumpCmd(TBLMGR_Tbl_t* Tbl, uint8 DumpType, const char* Filen
 
 
 /******************************************************************************
-** Function: MQTT_TOPIC_TBL_GetEntry
-**
-** Return a pointer to the table entry ide=entified by 'i'.
-** 
-** Notes:
-**   1. i must be less than MQTT_TOPIC_TBL_MAX_TOPICS
-**
-*/
-const MQTT_TOPIC_TBL_Entry_t *MQTT_TOPIC_TBL_GetEntry(uint8 Idx)
-{
-
-   MQTT_TOPIC_TBL_Entry_t *Entry = NULL;
-   
-   if (MQTT_TOPIC_TBL_ValidId(Idx))
-   {
-      Entry = &MqttTopicTbl->Data.Entry[Idx];
-   }
-
-   return Entry;
-   
-} /* End MQTT_TOPIC_TBL_GetEntry() */
-
-
-/******************************************************************************
 ** Function: MQTT_TOPIC_TBL_GetCfeToJson
 **
 ** Return a pointer to the CfeToJson conversion function for 'Idx'.
@@ -242,6 +224,30 @@ MQTT_TOPIC_TBL_CfeToJson_t MQTT_TOPIC_TBL_GetCfeToJson(uint8 Idx)
 
 
 /******************************************************************************
+** Function: MQTT_TOPIC_TBL_GetEntry
+**
+** Return a pointer to the table entry ide=entified by 'i'.
+** 
+** Notes:
+**   1. i must be less than MQTT_TOPIC_TBL_MAX_TOPICS
+**
+*/
+const MQTT_TOPIC_TBL_Entry_t *MQTT_TOPIC_TBL_GetEntry(uint8 Idx)
+{
+
+   MQTT_TOPIC_TBL_Entry_t *Entry = NULL;
+   
+   if (MQTT_TOPIC_TBL_ValidId(Idx))
+   {
+      Entry = &MqttTopicTbl->Data.Entry[Idx];
+   }
+
+   return Entry;
+   
+} /* End MQTT_TOPIC_TBL_GetEntry() */
+
+
+/******************************************************************************
 ** Function: MQTT_TOPIC_TBL_GetJsonToCfe
 **
 ** Return a pointer to the JsonToCfe conversion function for 'Idx'.
@@ -263,21 +269,6 @@ MQTT_TOPIC_TBL_JsonToCfe_t MQTT_TOPIC_TBL_GetJsonToCfe(uint8 Idx)
    return JsonToCfeFunc;
    
 } /* End MQTT_TOPIC_TBL_GetJsonToCfe() */
-
-
-/******************************************************************************
-** Function: MQTT_TOPIC_TBL_RunSbMsgTest
-**
-** Notes:
-**   1. Assumes Idx has been verified.
-**
-*/
-void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx)
-{
-
-   (VirtualFunc[Idx].SbMsgTest)();
-
-} /* End MQTT_TOPIC_TBL_RunSbMsgTest() */
 
 
 /******************************************************************************
@@ -324,6 +315,22 @@ void MQTT_TOPIC_TBL_ResetStatus(void)
    MqttTopicTbl->LastLoadCnt = 0;
  
 } /* End MQTT_TOPIC_TBL_ResetStatus() */
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_RunSbMsgTest
+**
+** Notes:
+**   1. Assumes Idx has been verified and that the VirtaulFunc array does not
+**      have any NULL pointers 
+**
+*/
+void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx, bool Init)
+{
+
+   (VirtualFunc[Idx].SbMsgTest)(Init);
+
+} /* End MQTT_TOPIC_TBL_RunSbMsgTest() */
 
 
 /******************************************************************************
@@ -402,5 +409,58 @@ static bool LoadJsonData(size_t JsonFileLen)
    
 } /* End LoadJsonData() */
 
+
+/******************************************************************************
+** Function: StubCfeToJson
+**
+** Provide a CfeToJson stub function to be used as a non-NULL pointer in the
+** VirtualFunc default values.
+**
+*/
+static bool StubCfeToJson(const char **JsonMsgTopic, const char **JsonMsgPayload, 
+                          const CFE_MSG_Message_t *CfeMsg)
+{
+
+   CFE_EVS_SendEvent(MQTT_TOPIC_TBL_STUB_EID, CFE_EVS_EventType_INFORMATION, 
+                     "CfeToJson stub");
+
+   return false;
+   
+} /* End MQTT_TOPIC_RATE_CfeToJson() */
+
+
+/******************************************************************************
+** Function: StubJsonToCfe
+**
+** Provide a CfeToJson stub function to be used as a non-NULL pointer in the
+** VirtualFunc default values.
+**
+*/
+static bool StubJsonToCfe(CFE_MSG_Message_t **CfeMsg, 
+                          const char *JsonMsgPayload, uint16 PayloadLen)
+{
+   
+   CFE_EVS_SendEvent(MQTT_TOPIC_TBL_STUB_EID, CFE_EVS_EventType_INFORMATION, 
+                     "JsonToCfe stub");
+
+   return false;
+   
+} /* End StubJsonToCfe() */
+
+
+/******************************************************************************
+** Function: StubSbMsgTest
+**
+** Provide a CfeToJson stub function to be used as a non-NULL pointer in the
+** VirtualFunc default values.
+**
+*/
+static void StubSbMsgTest(bool Init)
+{
+
+   CFE_EVS_SendEvent(MQTT_TOPIC_TBL_STUB_EID, CFE_EVS_EventType_INFORMATION, 
+                     "SbMsgTest stub");
+   
+} /* End StubSbMsgTest() */
 
 

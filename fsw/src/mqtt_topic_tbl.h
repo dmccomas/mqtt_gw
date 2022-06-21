@@ -63,7 +63,7 @@
 #define MQTT_TOPIC_TBL_INDEX_ERR_EID  (MQTT_TOPIC_TBL_BASE_EID + 0)
 #define MQTT_TOPIC_TBL_DUMP_ERR_EID   (MQTT_TOPIC_TBL_BASE_EID + 1)
 #define MQTT_TOPIC_TBL_LOAD_ERR_EID   (MQTT_TOPIC_TBL_BASE_EID + 2)
-
+#define MQTT_TOPIC_TBL_STUB_EID       (MQTT_TOPIC_TBL_BASE_EID + 3)
 
 /**********************/
 /** Type Definitions **/
@@ -105,8 +105,8 @@ typedef MQTT_TOPIC_TBL_Data_t* (*MQTT_TOPIC_TBL_GetDataPtr_t)(void);
 */
 
 typedef bool (*MQTT_TOPIC_TBL_JsonToCfe_t)(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload, uint16 PayloadLen);
-typedef bool (*MQTT_TOPIC_TBL_CfeToJson_t)(char **JsonMsg, const CFE_MSG_Message_t *CfeMsg);
-typedef void (*MQTT_TOPIC_TBL_SbMsgTest_t)(void);
+typedef bool (*MQTT_TOPIC_TBL_CfeToJson_t)(const char **JsonMsgTopic, const char **JsonMsgPayload, const CFE_MSG_Message_t *CfeMsg);
+typedef void (*MQTT_TOPIC_TBL_SbMsgTest_t)(bool Init);
 
 typedef struct
 {
@@ -182,18 +182,6 @@ bool MQTT_TOPIC_TBL_DumpCmd(TBLMGR_Tbl_t *Tbl, uint8 DumpType, const char *Filen
 
 
 /******************************************************************************
-** Function: MQTT_TOPIC_TBL_GetEntry
-**
-** Return a pointer to the table entry identified by 'Idx'.
-** 
-** Notes:
-**   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
-**
-*/
-const MQTT_TOPIC_TBL_Entry_t *MQTT_TOPIC_TBL_GetEntry(uint8 Idx);
-
-
-/******************************************************************************
 ** Function: MQTT_TOPIC_TBL_GetCfeToJson
 **
 ** Return a pointer to the CfeToJson conversion function for 'Idx'.
@@ -203,6 +191,18 @@ const MQTT_TOPIC_TBL_Entry_t *MQTT_TOPIC_TBL_GetEntry(uint8 Idx);
 **
 */
 MQTT_TOPIC_TBL_CfeToJson_t MQTT_TOPIC_TBL_GetCfeToJson(uint8 Idx);
+
+
+/******************************************************************************
+** Function: MQTT_TOPIC_TBL_GetEntry
+**
+** Return a pointer to the table entry identified by 'Idx'.
+** 
+** Notes:
+**   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
+**
+*/
+const MQTT_TOPIC_TBL_Entry_t *MQTT_TOPIC_TBL_GetEntry(uint8 Idx);
 
 
 /******************************************************************************
@@ -251,7 +251,7 @@ void MQTT_TOPIC_TBL_ResetStatus(void);
 **   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
 **
 */
-void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx);
+void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx, bool Init);
 
 
 /******************************************************************************

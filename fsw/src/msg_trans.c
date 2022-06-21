@@ -84,7 +84,7 @@ void MSG_TRANS_ProcessMqttMsg(MessageData* MsgData)
    
    MQTTMessage* MsgPtr = MsgData->message;
 
-   uint16  i = 0;
+   uint16  id = 0;
    uint16  TopicLen;
    char    TopicStr[MQTT_TOPIC_TBL_MAX_TOPIC_LEN];
    bool    MsgFound = false;
@@ -102,10 +102,10 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
       
       OS_printf("MsgPtr->payloadlen=%d\n", (int)MsgPtr->payloadlen);
 
-      while ( MsgFound == false && i < MQTT_TOPIC_TBL_MAX_TOPICS)
+      while ( MsgFound == false && id < MQTT_TOPIC_TBL_MAX_TOPICS)
       {
 
-        TopicTblEntry = MQTT_TOPIC_TBL_GetEntry(i);
+        TopicTblEntry = MQTT_TOPIC_TBL_GetEntry(id);
         if (TopicTblEntry != NULL)
         {
             
@@ -123,7 +123,7 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
             } 
             else
             {
-               i++;
+               id++;
             }
         }
       } /* End while loop */
@@ -132,9 +132,9 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
       {
             
          CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_INFORMATION,
-                           "MSG_TRANS_ProcessMqttMsg: Found message at index %d", i); 
+                           "MSG_TRANS_ProcessMqttMsg: Found message at index %d", id); 
                        
-         JsonToCfe = MQTT_TOPIC_TBL_GetJsonToCfe(i);    
+         JsonToCfe = MQTT_TOPIC_TBL_GetJsonToCfe(id);    
          
          if (JsonToCfe(&CfeMsg, &MsgData->topicName->lenstring.data[TopicLen], MsgPtr->payloadlen))
          {
@@ -142,24 +142,24 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
             CFE_MSG_GetMsgId(CfeMsg, &MsgId);
       
             CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_INFORMATION,
-                              "MSG_TRANS_ProcessMqttMsg: Sending message 0x%04X", CFE_SB_MsgIdToValue(MsgId)); 
+                              "MSG_TRANS_ProcessMqttMsg: Sending SB message 0x%04X", CFE_SB_MsgIdToValue(MsgId)); 
             
-            CFE_SB_TimeStampMsg(CFE_MSG_PTR(CfeMsg));
-            CFE_SB_TransmitMsg(CFE_MSG_PTR(CfeMsg), true);
+            CFE_SB_TimeStampMsg(CFE_MSG_PTR(*CfeMsg));
+            CFE_SB_TransmitMsg(CFE_MSG_PTR(*CfeMsg), true);
 
          }
          else
          {
-            CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_INFORMATION,
-                              "MSG_TRANS_ProcessMqttMsg: Error creating SB message from JSON"); 
-                     
+            CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_ERROR,
+                              "MSG_TRANS_ProcessMqttMsg: Error creating SB message from JSON topic %s, Id %d",
+                               TopicStr, id); 
          }
          
       } /* End if message found */
       else 
       {
       
-         CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_INFORMATION, 
+         CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_ERROR, 
                            "MSG_TRANS_ProcessMqttMsg: Could not find a topic match for %s", 
                            MsgData->topicName->lenstring.data);
       
@@ -185,25 +185,48 @@ OS_printf("\n****************************  MSG_TRANS_ProcessMqttMsg() **********
 **   None
 **
 */
-void MSG_TRANS_ProcessSbMsg(const CFE_MSG_Message_t *MsgPtr)
+bool MSG_TRANS_ProcessSbMsg(const CFE_MSG_Message_t *MsgPtr,
+                            const char **Topic, const char **Payload)
 {
-
+   
+   bool RetStatus = false;
    int32 TopicId;
    int32 SbStatus;
    CFE_SB_MsgId_t  MsgId = CFE_SB_INVALID_MSG_ID;
+   MQTT_TOPIC_TBL_CfeToJson_t CfeToJson;
+   const char *JsonMsgTopic;
+   const char *JsonMsgPayload;
 
-   OS_printf("\n****************************  MSG_TRANS_ProcessSBMsg() ****************************\n");
-
+OS_printf("\n****************************  MSG_TRANS_ProcessSBMsg() ****************************\n");
    SbStatus = CFE_MSG_GetMsgId(MsgPtr, &MsgId);
    if (SbStatus == CFE_SUCCESS)
    {
    
-      //TODO - Call translator
+      CFE_EVS_SendEvent(MSG_TRANS_PROCESS_SB_MSG_EID, CFE_EVS_EventType_INFORMATION, 
+                        "MSG_TRANS_ProcessSbMsg: Received SB message ID 0x%04X, MQTT base ID 0x%04X", 
+                        CFE_SB_MsgIdToValue(MsgId), MsgTrans->TopicBaseMid); 
+      
       TopicId = CFE_SB_MsgIdToValue(MsgId) - MsgTrans->TopicBaseMid;
       if (TopicId >= 0 && TopicId < MQTT_TOPIC_TBL_MAX_TOPICS)
       {
-         CFE_EVS_SendEvent(MSG_TRANS_PROCESS_SB_MSG_EID, CFE_EVS_EventType_INFORMATION, 
-                           "MSG_TRANS_ProcessSbMsg: Received topic id %d", TopicId); 
+         
+         CfeToJson = MQTT_TOPIC_TBL_GetCfeToJson(TopicId);    
+         
+         if (CfeToJson(&JsonMsgTopic, &JsonMsgPayload, MsgPtr))
+         {
+            *Topic   = JsonMsgTopic; 
+            *Payload = JsonMsgPayload;
+            RetStatus = true;
+            CFE_EVS_SendEvent(MSG_TRANS_PROCESS_SB_MSG_EID, CFE_EVS_EventType_INFORMATION,
+                              "MSG_TRANS_ProcessMqttMsg: Created MQTT topic %s message %s",
+                              JsonMsgTopic, JsonMsgPayload);             
+         }
+         else
+         {
+            CFE_EVS_SendEvent(MSG_TRANS_PROCESS_MQTT_MSG_EID, CFE_EVS_EventType_ERROR,
+                              "MSG_TRANS_ProcessMqttMsg: Error creating JSON message from SB for topic %d", TopicId); 
+         
+         }        
       }
       else
       {
@@ -212,8 +235,10 @@ void MSG_TRANS_ProcessSbMsg(const CFE_MSG_Message_t *MsgPtr)
                            TopicId, CFE_SB_MsgIdToValue(MsgId), MsgTrans->TopicBaseMid);
       }
 
-   }
+   } /* End message Id */
 
+   return RetStatus;
+   
 } /* End MSG_TRANS_ProcessSbMsg() */
 
 

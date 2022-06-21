@@ -118,23 +118,24 @@ void MSG_TRANS_Constructor(MSG_TRANS_Class_t *MsgTransPtr,
 
 
 /******************************************************************************
-** Function: MSG_TRANS_ProcessSbMsg
-**
-** Notes:
-**   None
-**
-*/
-void MSG_TRANS_ProcessSbMsg(const CFE_MSG_Message_t *MsgPt);
-
-
-/******************************************************************************
-** Function: MSG_TRANS_ProcessMsg
+** Function: MSG_TRANS_ProcessMqttMsg
 **
 ** Notes:
 **   1. Signature must mach MQTT_CLIENT_MsgCallback
 **
 */
 void MSG_TRANS_ProcessMqttMsg(MessageData* MsgData);
+
+
+/******************************************************************************
+** Function: MSG_TRANS_ProcessSbMsg
+**
+** Notes:
+**   None
+**
+*/
+bool MSG_TRANS_ProcessSbMsg(const CFE_MSG_Message_t *MsgPt,
+                            const char **Topic, const char **Payload);
 
 
 /******************************************************************************

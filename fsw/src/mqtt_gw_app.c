@@ -33,6 +33,7 @@
 #include <string.h>
 #include "mqtt_gw_app.h"
 #include "mqtt_topic_tbl.h"
+#include "mqtt_gw_eds_cc.h"
 
 /***********************/
 /** Macro Definitions **/
@@ -219,8 +220,8 @@ static int32 InitApp(void)
    if (INITBL_Constructor(INITBL_OBJ, MQTT_GW_INI_FILENAME, &IniCfgEnum))
    {
    
-OS_printf("MQTT_GW_RATE_TLM_MID  = 0x%04X\n", MQTT_GW_RATE_TLM_MID); 
 OS_printf("MQTT_GW_CMD_MID  = 0x%04X\n", MQTT_GW_CMD_MID);
+OS_printf("MQTT_GW_HK_TLM_MID  = 0x%04X, MQTT_GW_RATE_TLM_MID  = 0x%04X\n", MQTT_GW_HK_TLM_MID, MQTT_GW_RATE_TLM_MID); 
       /* Pool for a command every 2 seconds */
       MqttGw.PollCmdInterval = 2000 / INITBL_GetIntConfig(INITBL_OBJ, CFG_TOPIC_PIPE_PEND_TIME);
       MqttGw.PollCmdCnt = 0;
@@ -261,6 +262,9 @@ OS_printf("MQTT_GW_CMD_MID  = 0x%04X\n", MQTT_GW_CMD_MID);
       CMDMGR_RegisterFunc(CMDMGR_OBJ, CMDMGR_NOOP_CMD_FC,   NULL, MQTT_GW_NoOpCmd,     0);
       CMDMGR_RegisterFunc(CMDMGR_OBJ, CMDMGR_RESET_CMD_FC,  NULL, MQTT_GW_ResetAppCmd, 0);
  
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_CONNECT_TO_MQTT_BROKER_CC, MQTT_MGR_OBJ, MQTT_MGR_ConnectToMqttBrokerCmd, sizeof(MQTT_GW_ConnectToMqttBroker_Payload_t));
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_CONFIG_SB_TOPIC_TEST_CC,   MQTT_MGR_OBJ, MQTT_MGR_ConfigSbTopicTestCmd,   sizeof(MQTT_GW_ConfigSbTopicTest_Payload_t));
+         
       CFE_MSG_Init(CFE_MSG_PTR(MqttGw.HkTlm.TelemetryHeader), CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_HK_TLM_MID)), sizeof(MQTT_GW_HkTlm_t));
 
       /*

@@ -22,7 +22,7 @@
 
       "TOPIC_PIPE_NAME":      "MQTT_TOPIC_PIPE",
       "TOPIC_PIPE_DEPTH":     20,
-      "TOPIC_PIPE_PEND_TIME": 500,
+      "TOPIC_PIPE_PEND_TIME": 250,
 
       "MQTT_BROKER_PORT":     1883,
       "MQTT_BROKER_ADDRESS":  "broker.hivemq.com",

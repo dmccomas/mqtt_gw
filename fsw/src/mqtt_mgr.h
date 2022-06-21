@@ -64,6 +64,7 @@
 typedef struct
 {
 
+   const INITBL_Class_t  *IniTbl; 
 
    uint32  MqttYieldTime;
    uint32  SbPendTime;
@@ -108,7 +109,18 @@ bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr);
 
 
 /******************************************************************************
-** Function: MQTT_MGR_ConfigSbTopicTest
+** Function: MQTT_MGR_ConnectToMqttBrokerCmd
+**
+** Start/stop a topic test. 
+**
+** Notes:
+**   1. Signature must match CMDMGR_CmdFuncPtr_t
+*/
+bool MQTT_MGR_ConnectToMqttBrokerCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
+
+
+/******************************************************************************
+** Function: MQTT_MGR_ConfigSbTopicTestCmd
 **
 ** Start/stop a topic test. 
 **
@@ -120,8 +132,9 @@ bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr);
 **      to stop. 
 **   2. In addition to testing the tranlation process they are useful for 
 **      verifying web apps that are processing the MQTT messages.
+**   3. Signature must match CMDMGR_CmdFuncPtr_t
 */
-bool MQTT_MGR_ConfigSbTopicTest(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
+bool MQTT_MGR_ConfigSbTopicTestCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
 
 
 /******************************************************************************

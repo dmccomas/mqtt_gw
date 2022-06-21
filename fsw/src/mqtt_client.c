@@ -171,20 +171,6 @@ void MQTT_CLIENT_Disconnect(void)
 
 
 /******************************************************************************
-** Function: MQTT_CLIENT_ResetStatus
-**
-** Reset counters and status flags to a known reset state.
-**
-*/
-void MQTT_CLIENT_ResetStatus(void)
-{
-
-   /* Nothing to do */
-
-} /* End MQTT_CLIENT_ResetStatus() */
-
-
-/******************************************************************************
 ** Function: MQTT_CLIENT_Publish
 **
 ** Notes:
@@ -199,14 +185,34 @@ bool MQTT_CLIENT_Publish(const char *Topic, const char *Payload)
    if (MQTTPublish(&MqttClient->Client, Topic, &MqttClient->PubMsg) == SUCCESS)
    {
       RetStatus = true;
-      CFE_EVS_SendEvent(MQTT_CLIENT_CONNECT_EID, CFE_EVS_EventType_INFORMATION, 
+      CFE_EVS_SendEvent(MQTT_CLIENT_PUBLISH_EID, CFE_EVS_EventType_INFORMATION, 
                        "Successfully published topic %s with payload %s",
-                       Topic, (char *)MqttClient->PubMsg.payload);
+                       Topic, Payload);
+   }
+   else
+   {
+      CFE_EVS_SendEvent(MQTT_CLIENT_PUBLISH_ERR_EID, CFE_EVS_EventType_ERROR, 
+                       "Error publishing topic %s with payload %s",
+                       Topic, Payload);   
    }
 
    return RetStatus;
 
 } /* End MQTT_CLIENT_Publish() */
+
+
+/******************************************************************************
+** Function: MQTT_CLIENT_ResetStatus
+**
+** Reset counters and status flags to a known reset state.
+**
+*/
+void MQTT_CLIENT_ResetStatus(void)
+{
+
+   /* Nothing to do */
+
+} /* End MQTT_CLIENT_ResetStatus() */
 
 
 /******************************************************************************

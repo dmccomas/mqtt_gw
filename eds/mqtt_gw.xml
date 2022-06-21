@@ -66,7 +66,7 @@
        </EntryList>
       </ContainerDataType>
 
-      <ContainerDataType name="Connect_Payload" shortDescription="Connect to an MQTT broker">
+      <ContainerDataType name="ConnectToMqttBroker_Payload" shortDescription="Connect to an MQTT broker">
         <EntryList>
           <Entry name="BrokerAddress" type="BASE_TYPES/PathName" shortDescription="URL of MQTT broker. Empty string will use app default" />
           <Entry name="BrokerPort"    type="BASE_TYPES/uint16"   shortDescription="Port of MQTT broker. A zero will use app default" />
@@ -139,12 +139,12 @@
         </EntryList>
       </ContainerDataType>
 
-      <ContainerDataType name="Connect" baseType="CommandBase" shortDescription="Connect or reconnect to an MQTT broker">
+      <ContainerDataType name="ConnectToMqttBroker" baseType="CommandBase" shortDescription="Connect or reconnect to an MQTT broker">
         <ConstraintSet>
           <ValueConstraint entry="Sec.FunctionCode" value="${OSK_C_FW/APP_BASE_CC} + 0" />
         </ConstraintSet>
         <EntryList>
-          <Entry type="Connect_Payload" name="Payload" />
+          <Entry type="ConnectToMqttBroker_Payload" name="Payload" />
         </EntryList>
       </ContainerDataType>
 

@@ -43,7 +43,7 @@ static bool LoadJsonData(const char *JsonMsgPayload, uint16 PayloadLen);
 
 static MQTT_TOPIC_RATE_Class_t* MqttTopicRate = NULL;
 
-static MQTT_TOPIC_RATE_Data_t RateData; /* Working buffer for loads */
+static MQTT_GW_RateTlm_Payload_t  RateData; /* Working buffer for loads */
 
 static CJSON_Obj_t JsonTblObjs[] = 
 {
@@ -57,6 +57,7 @@ static CJSON_Obj_t JsonTblObjs[] =
    
 };
 
+static const char *NullRateMsg = "{\"rate\":{\"x\": 0.0,\"y\": 0.0,\"z\": 0.0}}";
 
 /******************************************************************************
 ** Function: MQTT_TOPIC_RATE_Constructor
@@ -68,16 +69,21 @@ static CJSON_Obj_t JsonTblObjs[] =
 **
 */
 void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr, 
-                                 CFE_SB_MsgId_t TlmMsgMid)
+                                 CFE_SB_MsgId_t TlmMsgMid, const char *Topic)
 {
 
    MqttTopicRate = MqttTopicRatePtr;
    memset(MqttTopicRate, 0, sizeof(MQTT_TOPIC_RATE_Class_t));
 
+   strncpy(MqttTopicRate->JsonMsgTopic, Topic, MQTT_TOPIC_TBL_MAX_TOPIC_LEN);
    MqttTopicRate->JsonObjCnt = (sizeof(JsonTblObjs)/sizeof(CJSON_Obj_t));
    
-   CFE_MSG_Init(CFE_MSG_PTR(MqttTopicRate->TlmMsg), TlmMsgMid, 
-                            sizeof(MQTT_TOPIC_RATE_TlmMsg_t));
+   CFE_MSG_Init(CFE_MSG_PTR(MqttTopicRate->TlmMsg), TlmMsgMid, sizeof(MQTT_GW_RateTlm_t));
+   
+   MqttTopicRate->TestAxis         = MQTT_TOPIC_RATE_TEST_AXIS_X;
+   MqttTopicRate->TestAxisCycleCnt = 0;
+   MqttTopicRate->TestAxisCycleLim = 180;        /* Rotate 90 deg on each axis */
+   MqttTopicRate->TestAxisRate     = 0.0087265;  /* 0.5 deg/sec in radians     */
    
 } /* End MQTT_TOPIC_RATE_Constructor() */
 
@@ -88,22 +94,24 @@ void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr,
 ** Convert a cFE rate message to a JSON topic message 
 **
 */
-bool MQTT_TOPIC_RATE_CfeToJson(char **JsonPayload, const CFE_MSG_Message_t *CfeMsg)
+bool MQTT_TOPIC_RATE_CfeToJson(const char **JsonMsgTopic, const char **JsonMsgPayload,
+                               const CFE_MSG_Message_t *CfeMsg)
 {
 
    bool  RetStatus = false;
    int   PayloadLen; 
-   const MQTT_TOPIC_RATE_TlmMsg_t *RateMsg = (MQTT_TOPIC_RATE_TlmMsg_t*)CfeMsg;
-   
-   *JsonPayload = NULL;
+   const MQTT_GW_RateTlm_Payload_t *RateMsg = CMDMGR_PAYLOAD_PTR(CfeMsg, MQTT_GW_RateTlm_t);
+
+   *JsonMsgTopic   = MqttTopicRate->JsonMsgTopic;
+   *JsonMsgPayload = NullRateMsg;
    
    PayloadLen = sprintf(MqttTopicRate->JsonMsgPayload,
                 "{\"rate\":{\"x\": %0.6f,\"y\": %0.6f,\"z\": %0.6f}}",
-                RateMsg->Payload.X, RateMsg->Payload.Y, RateMsg->Payload.Z);
+                RateMsg->X, RateMsg->Y, RateMsg->Z);
 
    if (PayloadLen > 0)
    {
-      *JsonPayload = MqttTopicRate->JsonMsgPayload;
+      *JsonMsgPayload = MqttTopicRate->JsonMsgPayload;
    
       ++MqttTopicRate->CfeToJsonCnt;
       RetStatus = true;
@@ -141,6 +149,71 @@ bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg,
 } /* End MQTT_TOPIC_RATE_JsonToCfe() */
 
 
+/******************************************************************************
+** Function: MQTT_TOPIC_RATE_SbMsgTest
+**
+** Convert a JSON rate topic message to a cFE rate message 
+**
+*/
+void MQTT_TOPIC_RATE_SbMsgTest(bool Init)
+{
+   
+   if (Init)
+   {
+      MqttTopicRate->TlmMsg.Payload.X = MqttTopicRate->TestAxisRate;
+      MqttTopicRate->TlmMsg.Payload.Y = 0.0;
+      MqttTopicRate->TlmMsg.Payload.Z = 0.0;
+      MqttTopicRate->TestAxis         = MQTT_TOPIC_RATE_TEST_AXIS_X;
+      MqttTopicRate->TestAxisCycleCnt = 0;
+
+   }
+   else
+   {
+      switch (MqttTopicRate->TestAxis)
+      {
+         case MQTT_TOPIC_RATE_TEST_AXIS_X:
+            if (++MqttTopicRate->TestAxisCycleCnt > MqttTopicRate->TestAxisCycleLim)
+            {
+               MqttTopicRate->TestAxisCycleCnt = 0;
+               MqttTopicRate->TlmMsg.Payload.X = 0.0;
+               MqttTopicRate->TlmMsg.Payload.Y = MqttTopicRate->TestAxisRate;
+               MqttTopicRate->TestAxis         = MQTT_TOPIC_RATE_TEST_AXIS_Y;
+            }
+            break;
+         case MQTT_TOPIC_RATE_TEST_AXIS_Y:
+            if (++MqttTopicRate->TestAxisCycleCnt > MqttTopicRate->TestAxisCycleLim)
+            {
+               MqttTopicRate->TestAxisCycleCnt = 0;
+               MqttTopicRate->TlmMsg.Payload.Y = 0.0;
+               MqttTopicRate->TlmMsg.Payload.Z = MqttTopicRate->TestAxisRate;
+               MqttTopicRate->TestAxis         = MQTT_TOPIC_RATE_TEST_AXIS_Z;
+            }
+            break;
+         case MQTT_TOPIC_RATE_TEST_AXIS_Z:
+            if (++MqttTopicRate->TestAxisCycleCnt > MqttTopicRate->TestAxisCycleLim)
+            {
+               MqttTopicRate->TestAxisCycleCnt = 0;
+               MqttTopicRate->TlmMsg.Payload.Z = 0.0;
+               MqttTopicRate->TlmMsg.Payload.X = MqttTopicRate->TestAxisRate;
+               MqttTopicRate->TestAxis         = MQTT_TOPIC_RATE_TEST_AXIS_X;
+            }
+            break;
+         default:
+            MqttTopicRate->TestAxisCycleCnt = 0;
+            MqttTopicRate->TlmMsg.Payload.X = MqttTopicRate->TestAxisRate;
+            MqttTopicRate->TlmMsg.Payload.Y = 0.0;
+            MqttTopicRate->TlmMsg.Payload.Z = 0.0;
+            MqttTopicRate->TestAxis         = MQTT_TOPIC_RATE_TEST_AXIS_X;
+            break;
+         
+      } /* End axis switch */
+   }
+   
+   CFE_SB_TimeStampMsg(CFE_MSG_PTR(MqttTopicRate->TlmMsg.TelemetryHeader));
+   CFE_SB_TransmitMsg(CFE_MSG_PTR(MqttTopicRate->TlmMsg.TelemetryHeader), true);
+   
+} /* End MQTT_TOPIC_RATE_SbMsgTest() */
+
 
 /******************************************************************************
 ** Function: LoadJsonData
@@ -154,17 +227,15 @@ static bool LoadJsonData(const char *JsonMsgPayload, uint16 PayloadLen)
    bool      RetStatus = false;
    size_t    ObjLoadCnt;
 
-   memset(&MqttTopicRate->TlmMsg.Payload, 0, sizeof(MQTT_TOPIC_RATE_Data_t));
+   memset(&MqttTopicRate->TlmMsg.Payload, 0, sizeof(MQTT_GW_RateTlm_Payload_t));
 OS_printf("LoadJsonData() %s, %d\n",JsonMsgPayload, PayloadLen);
    ObjLoadCnt = CJSON_LoadObjArray(JsonTblObjs, MqttTopicRate->JsonObjCnt, 
                                   JsonMsgPayload, PayloadLen);
 
    if (ObjLoadCnt == MqttTopicRate->JsonObjCnt)
    {
-
-      memcpy(&MqttTopicRate->TlmMsg.Payload, &RateData, sizeof(MQTT_TOPIC_RATE_Data_t));
+      memcpy(&MqttTopicRate->TlmMsg.Payload, &RateData, sizeof(MQTT_GW_RateTlm_Payload_t));      
       RetStatus = true;
-   
    }
    else
    {

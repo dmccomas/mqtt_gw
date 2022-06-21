@@ -64,6 +64,7 @@ void MQTT_MGR_Constructor(MQTT_MGR_Class_t *MqttMgrPtr,
    
    memset(MqttMgr, 0, sizeof( MQTT_MGR_Class_t));
    
+   MqttMgr->IniTbl = IniTbl;
    MqttMgr->MqttYieldTime = INITBL_GetIntConfig(IniTbl, CFG_MQTT_CLIENT_YIELD_TIME);
    MqttMgr->SbPendTime    = INITBL_GetIntConfig(IniTbl, CFG_TOPIC_PIPE_PEND_TIME);
    
@@ -96,11 +97,12 @@ bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr)
 
 
 /******************************************************************************
-** Function: MQTT_MGR_ConfigSbTopicTest
+** Function: MQTT_MGR_ConfigSbTopicTestCmd
 **
-** TODO: Define command parameters in EDS
+** Notes:
+**   1. TODO: Define command parameters in EDS
 */
-bool MQTT_MGR_ConfigSbTopicTest(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
+bool MQTT_MGR_ConfigSbTopicTestCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
 {
 
    const MQTT_GW_ConfigSbTopicTest_Payload_t *ConfigSbTopicTestCmd = CMDMGR_PAYLOAD_PTR(MsgPtr, MQTT_GW_ConfigSbTopicTest_t);
@@ -115,8 +117,9 @@ bool MQTT_MGR_ConfigSbTopicTest(void* DataObjPtr, const CFE_MSG_Message_t *MsgPt
          RetStatus = true;
          CFE_EVS_SendEvent(MQTT_MGR_CONFIG_TEST_EID, CFE_EVS_EventType_INFORMATION, 
                            "Started SB test for topic ID %d", ConfigSbTopicTestCmd->Id);
+         MQTT_TOPIC_TBL_RunSbMsgTest(MqttMgr->SbTopicTestId, true);      
       }
-      else if (ConfigSbTopicTestCmd->Action == 1)
+      else if (ConfigSbTopicTestCmd->Action == 2)
       {
          MqttMgr->SbTopicTestId = ConfigSbTopicTestCmd->Id;
          MqttMgr->SbTopicTestActive = false;
@@ -144,6 +147,32 @@ bool MQTT_MGR_ConfigSbTopicTest(void* DataObjPtr, const CFE_MSG_Message_t *MsgPt
    
 } /* End MQTT_MGR_ConfigSbTopicTest() */
 
+
+/******************************************************************************
+** Function: MQTT_MGR_ConnectToMqttBrokerCmd
+**
+** TODO: Add logic to use command parameters
+*/
+bool MQTT_MGR_ConnectToMqttBrokerCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
+{
+   /*
+   const MQTT_GW_ConnectToMqttBroker_Payload_t *ConnectToMqttBrokerCmd = 
+         CMDMGR_PAYLOAD_PTR(MsgPtr, MQTT_GW_ConnectToMqttBroker_t);
+   */
+   bool RetStatus = true;
+
+
+   const char *BrokerAddress = INITBL_GetStrConfig(MqttMgr->IniTbl, CFG_MQTT_BROKER_ADDRESS);
+   uint32     BrokerPort     = INITBL_GetIntConfig(MqttMgr->IniTbl, CFG_MQTT_BROKER_PORT);
+   const char *ClientName    = INITBL_GetStrConfig(MqttMgr->IniTbl, CFG_MQTT_CLIENT_NAME);
+    
+   MQTT_CLIENT_Connect(ClientName, BrokerAddress, BrokerPort);
+
+   return RetStatus;
+   
+} /* End MQTT_MGR_ConnectToMqttBrokerCmd() */
+
+
 /******************************************************************************
 ** Function: MQTT_MGR_Execute
 **
@@ -157,7 +186,7 @@ void MQTT_MGR_Execute(uint32 PerfId)
    
    if (MqttMgr->SbTopicTestActive)
    {
-      MQTT_TOPIC_TBL_RunSbMsgTest(MqttMgr->SbTopicTestId);
+      MQTT_TOPIC_TBL_RunSbMsgTest(MqttMgr->SbTopicTestId, false);
    }
 
 } /* End MQTT_MGR_Execute() */
@@ -181,12 +210,17 @@ void MQTT_MGR_ResetStatus(void)
 /******************************************************************************
 ** Function: ProcessSbTopicMsgs
 **
+** Notes:
+**   1. MSG_TRANS_ProcessSbMsg() and MQTT_CLIENT_Publish() send error events
+**      so no need to send any events here.
 */
 static void ProcessSbTopicMsgs(uint32 PerfId)
 {
 
    int32  SbStatus;
    CFE_SB_Buffer_t  *SbBufPtr;
+   const char *Topic;
+   const char *Payload;
 
    do 
    {
@@ -196,7 +230,10 @@ static void ProcessSbTopicMsgs(uint32 PerfId)
    
       if (SbStatus == CFE_SUCCESS)
       {
-         MSG_TRANS_ProcessSbMsg(&SbBufPtr->Msg);
+         if (MSG_TRANS_ProcessSbMsg(&SbBufPtr->Msg, &Topic, &Payload))
+         {
+            MQTT_CLIENT_Publish(Topic, Payload);
+         }
       }
       
    } while(SbStatus == CFE_SUCCESS);
