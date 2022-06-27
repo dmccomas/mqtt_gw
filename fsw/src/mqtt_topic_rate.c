@@ -68,6 +68,7 @@ static const char *NullRateMsg = "{\"rate\":{\"x\": 0.0,\"y\": 0.0,\"z\": 0.0}}"
 **   None
 **
 */
+#define DEG_PER_SEC_IN_RADIANS 0.0174533
 void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr, 
                                  CFE_SB_MsgId_t TlmMsgMid, const char *Topic)
 {
@@ -80,10 +81,16 @@ void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr,
    
    CFE_MSG_Init(CFE_MSG_PTR(MqttTopicRate->TlmMsg), TlmMsgMid, sizeof(MQTT_GW_RateTlm_t));
    
+   /*
+   ** Cycle counts are used by sim to switch axis
+   ** Need to coordinate with topic message SB pend time
+   */
    MqttTopicRate->TestAxis         = MQTT_TOPIC_RATE_TEST_AXIS_X;
    MqttTopicRate->TestAxisCycleCnt = 0;
-   MqttTopicRate->TestAxisCycleLim = 180;        /* Rotate 90 deg on each axis */
-   MqttTopicRate->TestAxisRate     = 0.0087265;  /* 0.5 deg/sec in radians     */
+   MqttTopicRate->TestAxisRate     = 0.0087265;  /* 0.5 deg/sec in radians with 250ms pend */
+   MqttTopicRate->TestAxisRate     = 0.0174533;  /* 1.0 deg/sec in radians with 250ms pend */
+   MqttTopicRate->TestAxisRate    *= 7.5;        /* 7.5 deg/s so 24 cycles for 90 deg */
+   MqttTopicRate->TestAxisCycleLim = 12*4;       /* Rotate 90 deg on each axis */
    
 } /* End MQTT_TOPIC_RATE_Constructor() */
 

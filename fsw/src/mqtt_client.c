@@ -182,6 +182,9 @@ bool MQTT_CLIENT_Publish(const char *Topic, const char *Payload)
    bool RetStatus = false;
    
 
+   MqttClient->PubMsg.payload = (void *)Payload;
+   MqttClient->PubMsg.payloadlen = strlen(Payload);
+   
    if (MQTTPublish(&MqttClient->Client, Topic, &MqttClient->PubMsg) == SUCCESS)
    {
       RetStatus = true;

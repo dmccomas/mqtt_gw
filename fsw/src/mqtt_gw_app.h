@@ -21,7 +21,7 @@
 **      is expected to be used in constrained environments so a trade for
 **      simplicity and extendability was made over complexity and genericity.
 **      A separate JSON table is defined for each supported MQTT topic combined
-**      with a custom function to manage the transaltion.
+**      with a custom function to manage the translation.
 **
 ** References:
 **   1. OpenSatKit Object-based Application Developer's Guide

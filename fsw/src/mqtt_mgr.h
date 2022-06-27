@@ -109,17 +109,6 @@ bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr);
 
 
 /******************************************************************************
-** Function: MQTT_MGR_ConnectToMqttBrokerCmd
-**
-** Start/stop a topic test. 
-**
-** Notes:
-**   1. Signature must match CMDMGR_CmdFuncPtr_t
-*/
-bool MQTT_MGR_ConnectToMqttBrokerCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
-
-
-/******************************************************************************
 ** Function: MQTT_MGR_ConfigSbTopicTestCmd
 **
 ** Start/stop a topic test. 
@@ -135,6 +124,17 @@ bool MQTT_MGR_ConnectToMqttBrokerCmd(void* DataObjPtr, const CFE_MSG_Message_t *
 **   3. Signature must match CMDMGR_CmdFuncPtr_t
 */
 bool MQTT_MGR_ConfigSbTopicTestCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
+
+
+/******************************************************************************
+** Function: MQTT_MGR_ConnectToMqttBrokerCmd
+**
+** Start/stop a topic test. 
+**
+** Notes:
+**   1. Signature must match CMDMGR_CmdFuncPtr_t
+*/
+bool MQTT_MGR_ConnectToMqttBrokerCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
 
 
 /******************************************************************************

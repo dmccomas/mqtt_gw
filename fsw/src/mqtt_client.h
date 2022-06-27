@@ -1,16 +1,27 @@
 /*
-** Purpose: Define MQTT messages
+** Copyright 2022 bitValence, Inc.
+** All Rights Reserved.
+**
+** This program is free software; you can modify and/or redistribute it
+** under the terms of the GNU Affero General Public License
+** as published by the Free Software Foundation; version 3 with
+** attribution addendums as found in the LICENSE.txt
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU Affero General Public License for more details.
+**
+** Purpose:
+**   Manage the MQTT client interface using the MQTT Library
 **
 ** Notes:
-**   1. Initial OSK MQTT App based on a January 2021 refactor of Alan Cudmore's
-**      MQTT App https://github.com/alanc98/mqtt_app. 
-**
-** License:
-**   Preserved original https://github.com/alanc98/mqtt_app Apache License 2.0.
+**   None
 **
 ** References:
 **   1. OpenSatKit Object-based Application Developer's Guide
 **   2. cFS Application Developer's Guide
+**
 */
 #ifndef _mqtt_client_
 #define _mqtt_client
@@ -109,12 +120,24 @@ void MQTT_CLIENT_Constructor(MQTT_CLIENT_Class_t *MqttClientPtr,
 
 
 /******************************************************************************
-** Function: MQTT_CLIENT_ResetStatus
+** Function: MQTT_CLIENT_Connect
 **
-** Reset counters and status flags to a known reset state.
+** Notes:
+**    None
 **
 */
-void MQTT_CLIENT_ResetStatus(void);
+bool MQTT_CLIENT_Connect(const char *ClientName,
+                         const char *BrokerAddress, uint32 BrokerPort);
+
+
+/******************************************************************************
+** Function: MQTT_CLIENT_Disconnect
+**
+** Notes:
+**    None
+**
+*/
+void MQTT_CLIENT_Disconnect(void);
 
 
 /******************************************************************************
@@ -124,6 +147,15 @@ void MQTT_CLIENT_ResetStatus(void);
 **    1. QOS needs to be converted to MQTT library constants
 */
 bool MQTT_CLIENT_Publish(const char *Topic, const char *Payload);
+
+
+/******************************************************************************
+** Function: MQTT_CLIENT_ResetStatus
+**
+** Reset counters and status flags to a known reset state.
+**
+*/
+void MQTT_CLIENT_ResetStatus(void);
 
 
 /******************************************************************************
@@ -145,27 +177,6 @@ bool MQTT_CLIENT_Subscribe(const char *Topic, int Qos,
 **
 */
 bool MQTT_CLIENT_Yield(uint32 YieldTime);
-
-
-/******************************************************************************
-** Function: MQTT_CLIENT_Connect
-**
-** Notes:
-**    None
-**
-*/
-bool MQTT_CLIENT_Connect(const char *ClientName,
-                         const char *BrokerAddress, uint32 BrokerPort);
-
-
-/******************************************************************************
-** Function: MQTT_CLIENT_Disconnect
-**
-** Notes:
-**    None
-**
-*/
-void MQTT_CLIENT_Disconnect(void);
 
 
 #endif /* _mqtt_client_ */
