@@ -24,7 +24,10 @@
 **      MQTT_TOPIC_TBL_MAX_TOPICS for the C code but must be manually
 **      configured when the EDS topic IDs are used.
 **   2. Steps to create a mqtt_topic_xxx translator:
-**      1. Create the translator object xxx, e.g. mqtt_topic_rate.* 
+**      1. Create the translator object mqtt_topic_xxx
+**         See mqtt_topic_rate.h/c for an example
+**         Define CCSDS packet in mqtt_gw.xml EDS file
+**         Include a test function to generate CCSDS packets
 **      2. mqtt_topic_tbl.h:
 **         - Include the translator object header
 **         - Add the class/object declaration to MQTT_TOPIC_TBL_Class_t.
@@ -32,8 +35,10 @@
 **         - Add the conversion functions to ConvertFunc[]
 **         - Add a call to the translator object in constructor 
 **      4. cpu1_mqtt_topic.json:
-**         - Add
-** 
+**         - Add topic definition
+**      5. Create/modify apps that generate CCSDS topic packets to
+**         use the EDS definition
+**
 ** References:
 **   1. OpenSatKit Object-based Application Developer's Guide
 **   2. cFS Application Developer's Guide
