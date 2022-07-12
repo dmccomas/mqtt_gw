@@ -75,7 +75,7 @@ void MQTT_MGR_Constructor(MQTT_MGR_Class_t *MqttMgrPtr,
 
    MSG_TRANS_Constructor(&MqttMgr->MsgTrans, IniTbl, TblMgr);
 
-   SubscribeToMessages(INITBL_GetIntConfig(IniTbl, CFG_TOPIC_MSG_MID));
+   SubscribeToMessages(INITBL_GetIntConfig(IniTbl, CFG_MQTT_GW_TOPIC_1_TLM_TOPICID));
       
 } /* End MQTT_MGR_Constructor() */
 

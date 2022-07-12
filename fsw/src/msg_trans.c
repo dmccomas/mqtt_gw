@@ -57,7 +57,7 @@ void MSG_TRANS_Constructor(MSG_TRANS_Class_t *MsgTransPtr,
 
    CFE_PSP_MemSet((void*)MsgTransPtr, 0, sizeof(MSG_TRANS_Class_t));
 
-   MsgTrans->TopicBaseMid  = INITBL_GetIntConfig(IniTbl, CFG_TOPIC_MSG_MID);
+   MsgTrans->TopicBaseMid  = INITBL_GetIntConfig(IniTbl, CFG_MQTT_GW_TOPIC_1_TLM_TOPICID);
    
    MQTT_TOPIC_TBL_Constructor(&MsgTrans->TopicTbl, 
                               INITBL_GetStrConfig(IniTbl, CFG_APP_CFE_NAME),

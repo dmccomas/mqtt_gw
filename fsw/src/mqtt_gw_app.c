@@ -228,8 +228,8 @@ OS_printf("MQTT_GW_HK_TLM_MID  = 0x%04X, MQTT_GW_RATE_TLM_MID  = 0x%04X\n", MQTT
       MqttGw.PerfId  = INITBL_GetIntConfig(INITBL_OBJ, CFG_APP_MAIN_PERF_ID);
       CFE_ES_PerfLogEntry(MqttGw.PerfId);
 
-      MqttGw.CmdMid     = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_CMD_MID));
-      MqttGw.SendHkMid  = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_SEND_HK_MID));
+      MqttGw.CmdMid     = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_MQTT_GW_CMD_TOPICID));
+      MqttGw.SendHkMid  = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_MQTT_GW_SEND_HK_TOPICID));
    
       RetStatus = CFE_SUCCESS;
    
@@ -265,7 +265,7 @@ OS_printf("MQTT_GW_HK_TLM_MID  = 0x%04X, MQTT_GW_RATE_TLM_MID  = 0x%04X\n", MQTT
       CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_CONNECT_TO_MQTT_BROKER_CC, MQTT_MGR_OBJ, MQTT_MGR_ConnectToMqttBrokerCmd, sizeof(MQTT_GW_ConnectToMqttBroker_Payload_t));
       CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_CONFIG_SB_TOPIC_TEST_CC,   MQTT_MGR_OBJ, MQTT_MGR_ConfigSbTopicTestCmd,   sizeof(MQTT_GW_ConfigSbTopicTest_Payload_t));
          
-      CFE_MSG_Init(CFE_MSG_PTR(MqttGw.HkTlm.TelemetryHeader), CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_HK_TLM_MID)), sizeof(MQTT_GW_HkTlm_t));
+      CFE_MSG_Init(CFE_MSG_PTR(MqttGw.HkTlm.TelemetryHeader), CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_MQTT_GW_HK_TLM_TOPICID)), sizeof(MQTT_GW_HkTlm_t));
 
       /*
       ** Application startup event message
