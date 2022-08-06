@@ -426,7 +426,7 @@ static bool StubCfeToJson(const char **JsonMsgTopic, const char **JsonMsgPayload
 
    return false;
    
-} /* End MQTT_TOPIC_RATE_CfeToJson() */
+} /* End StubCfeToJson() */
 
 
 /******************************************************************************

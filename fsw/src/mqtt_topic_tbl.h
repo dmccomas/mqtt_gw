@@ -175,7 +175,7 @@ void MQTT_TOPIC_TBL_Constructor(MQTT_TOPIC_TBL_Class_t *TopicMgrPtr,
 /******************************************************************************
 ** Function: MQTT_TOPIC_TBL_DumpCmd
 **
-** Command to dump the table.
+** Command to write the table data from memory to a JSON file.
 **
 ** Notes:
 **  1. Function signature must match TBLMGR_DumpTblFuncPtr_t.
@@ -225,7 +225,7 @@ MQTT_TOPIC_TBL_JsonToCfe_t MQTT_TOPIC_TBL_GetJsonToCfe(uint8 Idx);
 /******************************************************************************
 ** Function: MQTT_TOPIC_TBL_LoadCmd
 **
-** Command to load the table.
+** Command to copy the table data from a JSON file to memory.
 **
 ** Notes:
 **  1. Function signature must match TBLMGR_LoadTblFuncPtr_t.
