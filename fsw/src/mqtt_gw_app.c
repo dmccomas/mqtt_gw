@@ -110,7 +110,7 @@ void MQTT_GW_AppMain(void)
       if (++MqttGw.PollCmdCnt > MqttGw.PollCmdInterval)
       {
           MqttGw.PollCmdCnt = 0;
-          RunStatus = ProcessCommands();      
+          RunStatus = ProcessCommands();
       } 
       
    } /* End CFE_ES_RunLoop */
@@ -164,44 +164,6 @@ bool MQTT_GW_ResetAppCmd(void* ObjDataPtr, const CFE_MSG_Message_t *MsgPtr)
 
 
 /******************************************************************************
-** Function: SendHousekeepingPkt
-**
-*/
-void SendHousekeepingPkt(void)
-{
-   
-   /* Good design practice in case app expands to more than one table */
-   //const TBLMGR_Tbl_t* LastTbl = TBLMGR_GetLastTblStatus(TBLMGR_OBJ);
-
-   /*
-   ** Framework Data
-   */
-
-   MqttGw.HkTlm.Payload.ValidCmdCnt    = MqttGw.CmdMgr.ValidCmdCnt;
-   MqttGw.HkTlm.Payload.InvalidCmdCnt  = MqttGw.CmdMgr.InvalidCmdCnt;
-
-   MqttGw.HkTlm.Payload.ChildValidCmdCnt    = MqttGw.ChildMgr.ValidCmdCnt;
-   MqttGw.HkTlm.Payload.ChildInvalidCmdCnt  = MqttGw.ChildMgr.InvalidCmdCnt;
-
-   /*
-   ** Table Data 
-   ** - Loaded with status from the last table action 
-   */
-
-   //OskCDemo.HkPkt.LastTblAction       = LastTbl->LastAction;
-   //OskCDemo.HkPkt.LastTblActionStatus = LastTbl->LastActionStatus;
-   
-   /*
-   ** MQTT Data
-   */
-
-   CFE_SB_TimeStampMsg(CFE_MSG_PTR(MqttGw.HkTlm.TelemetryHeader));
-   CFE_SB_TransmitMsg(CFE_MSG_PTR(MqttGw.HkTlm.TelemetryHeader), true);
-      
-} /* End SendHousekeepingPkt() */
-
-
-/******************************************************************************
 ** Function: InitApp
 **
 */
@@ -220,8 +182,6 @@ static int32 InitApp(void)
    if (INITBL_Constructor(INITBL_OBJ, MQTT_GW_INI_FILENAME, &IniCfgEnum))
    {
    
-OS_printf("MQTT_GW_CMD_MID  = 0x%04X\n", MQTT_GW_CMD_MID);
-OS_printf("MQTT_GW_HK_TLM_MID  = 0x%04X, MQTT_GW_RATE_TLM_MID  = 0x%04X\n", MQTT_GW_HK_TLM_MID, MQTT_GW_RATE_TLM_MID); 
       /* Pool for a command every 2 seconds */
       MqttGw.PollCmdInterval = 2000 / INITBL_GetIntConfig(INITBL_OBJ, CFG_TOPIC_PIPE_PEND_TIME);
       MqttGw.PollCmdCnt = 0;
@@ -259,8 +219,11 @@ OS_printf("MQTT_GW_HK_TLM_MID  = 0x%04X, MQTT_GW_RATE_TLM_MID  = 0x%04X\n", MQTT
       CFE_SB_Subscribe(MqttGw.SendHkMid, MqttGw.CmdPipe);
 
       CMDMGR_Constructor(CMDMGR_OBJ);
-      CMDMGR_RegisterFunc(CMDMGR_OBJ, CMDMGR_NOOP_CMD_FC,   NULL, MQTT_GW_NoOpCmd,     0);
-      CMDMGR_RegisterFunc(CMDMGR_OBJ, CMDMGR_RESET_CMD_FC,  NULL, MQTT_GW_ResetAppCmd, 0);
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_NOOP_CC,   NULL, MQTT_GW_NoOpCmd,     0);
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_RESET_CC,  NULL, MQTT_GW_ResetAppCmd, 0);
+
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_LOAD_TBL_CC, TBLMGR_OBJ, TBLMGR_LoadTblCmd, TBLMGR_LOAD_TBL_CMD_DATA_LEN);
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_DUMP_TBL_CC, TBLMGR_OBJ, TBLMGR_DumpTblCmd, TBLMGR_DUMP_TBL_CMD_DATA_LEN);
  
       CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_CONNECT_TO_MQTT_BROKER_CC, MQTT_MGR_OBJ, MQTT_MGR_ConnectToMqttBrokerCmd, sizeof(MQTT_GW_ConnectToMqttBroker_Payload_t));
       CMDMGR_RegisterFunc(CMDMGR_OBJ, MQTT_GW_CONFIG_SB_TOPIC_TEST_CC,   MQTT_MGR_OBJ, MQTT_MGR_ConfigSbTopicTestCmd,   sizeof(MQTT_GW_ConfigSbTopicTest_Payload_t));
@@ -335,4 +298,54 @@ static int32 ProcessCommands(void)
    return RetStatus;
    
 } /* End ProcessCommands() */
+
+
+/******************************************************************************
+** Function: SendHousekeepingPkt
+**
+*/
+void SendHousekeepingPkt(void)
+{
+   
+   /* Good design practice in case app expands to more than one table */
+   const TBLMGR_Tbl_t* LastTbl = TBLMGR_GetLastTblStatus(TBLMGR_OBJ);
+
+   MQTT_GW_HkTlm_Payload_t *Payload = &MqttGw.HkTlm.Payload;
+
+   /*
+   ** Framework Data
+   */
+
+   Payload->ValidCmdCnt    = MqttGw.CmdMgr.ValidCmdCnt;
+   Payload->InvalidCmdCnt  = MqttGw.CmdMgr.InvalidCmdCnt;
+
+   Payload->ChildValidCmdCnt    = MqttGw.ChildMgr.ValidCmdCnt;
+   Payload->ChildInvalidCmdCnt  = MqttGw.ChildMgr.InvalidCmdCnt;
+
+   /*
+   ** Table Data 
+   ** - Loaded with status from the last table action 
+   */
+
+   Payload->LastTblAction  = LastTbl->LastAction;
+   Payload->TopicTblLoaded = MqttGw.MqttMgr.MsgTrans.TopicTbl.Loaded;
+   //OskCDemo.HkPkt.LastTblActionStatus = LastTbl->LastActionStatus;
+   
+   /*
+   ** MQTT Data
+   */
+
+   Payload->MqttYieldTime     = MqttGw.MqttMgr.MqttYieldTime;
+   Payload->SbPendTime        = MqttGw.MqttMgr.SbPendTime;
+   Payload->SbTopicTestActive = MqttGw.MqttMgr.SbTopicTestActive;
+   Payload->SbTopicTestId     = MqttGw.MqttMgr.SbTopicTestId;
+   Payload->SbTopicTestParam  = MqttGw.MqttMgr.SbTopicTestParam;
+
+   Payload->MqttConnected = MqttGw.MqttMgr.MqttClient.Connected;
+
+
+   CFE_SB_TimeStampMsg(CFE_MSG_PTR(MqttGw.HkTlm.TelemetryHeader));
+   CFE_SB_TransmitMsg(CFE_MSG_PTR(MqttGw.HkTlm.TelemetryHeader), true);
+
+} /* End SendHousekeepingPkt() */
 

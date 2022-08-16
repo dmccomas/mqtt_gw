@@ -111,7 +111,7 @@ typedef MQTT_TOPIC_TBL_Data_t* (*MQTT_TOPIC_TBL_GetDataPtr_t)(void);
 
 typedef bool (*MQTT_TOPIC_TBL_JsonToCfe_t)(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload, uint16 PayloadLen);
 typedef bool (*MQTT_TOPIC_TBL_CfeToJson_t)(const char **JsonMsgTopic, const char **JsonMsgPayload, const CFE_MSG_Message_t *CfeMsg);
-typedef void (*MQTT_TOPIC_TBL_SbMsgTest_t)(bool Init);
+typedef void (*MQTT_TOPIC_TBL_SbMsgTest_t)(bool Init, int16 Param);
 
 typedef struct
 {
@@ -256,7 +256,7 @@ void MQTT_TOPIC_TBL_ResetStatus(void);
 **   1. Idx must be less than MQTT_TOPIC_TBL_MAX_TOPICS
 **
 */
-void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx, bool Init);
+void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx, bool Init, int16 Param);
 
 
 /******************************************************************************

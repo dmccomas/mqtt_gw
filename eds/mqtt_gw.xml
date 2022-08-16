@@ -52,6 +52,14 @@
       <!--**** DataTypeSet: Command Payloads ****-->
       <!--***************************************-->
 
+      <EnumeratedDataType name="BooleanUint8" shortDescription="8-bit Boolean for commands" >
+        <IntegerDataEncoding sizeInBits="8" encoding="unsigned" />
+        <EnumerationList>
+          <Enumeration label="FALSE" value="0" shortDescription="" />
+          <Enumeration label="TRUE"  value="1" shortDescription="" />
+        </EnumerationList>
+      </EnumeratedDataType>
+
       <ContainerDataType name="LoadTbl_Payload" shortDescription="Load an app's JSON table">
         <EntryList>
           <Entry name="Id"       type="TblId"                   shortDescription="Table identifier" />
@@ -80,6 +88,7 @@
         <EntryList>
           <Entry name="Id"     type="BASE_TYPES/uint16" shortDescription="Topic identifier which is an index into the MQTT_TOPIC_TBL" />
           <Entry name="Action" type="TestAction"        shortDescription="Start/stop a test" />
+          <Entry name="Param"  type="BASE_TYPES/int16"  shortDescription="Topic specific test parameter" />
        </EntryList>
       </ContainerDataType>
 
@@ -89,10 +98,18 @@
     
       <ContainerDataType name="HkTlm_Payload" shortDescription="App's state and status summary, 'housekeeping data'">
         <EntryList>
-          <Entry name="ValidCmdCnt"         type="BASE_TYPES/uint16" />
-          <Entry name="InvalidCmdCnt"       type="BASE_TYPES/uint16" />
-          <Entry name="ChildValidCmdCnt"    type="BASE_TYPES/uint16" />
-          <Entry name="ChildInvalidCmdCnt"  type="BASE_TYPES/uint16" />
+          <Entry name="ValidCmdCnt"         type="BASE_TYPES/uint16"   />
+          <Entry name="InvalidCmdCnt"       type="BASE_TYPES/uint16"   />
+          <Entry name="ChildValidCmdCnt"    type="BASE_TYPES/uint16"   />
+          <Entry name="ChildInvalidCmdCnt"  type="BASE_TYPES/uint16"   />
+          <Entry name="LastTblAction"       type="OSK_C_FW/TblActions" />
+          <Entry name="TopicTblLoaded"      type="BASE_TYPES/uint8"    />
+          <Entry name="MqttYieldTime"       type="BASE_TYPES/uint32"   />
+          <Entry name="SbPendTime"          type="BASE_TYPES/uint32"   />
+          <Entry name="MqttConnected"       type="BASE_TYPES/uint8"    />
+          <Entry name="SbTopicTestActive"   type="BASE_TYPES/uint8"    />
+          <Entry name="SbTopicTestId"       type="BASE_TYPES/uint16"   />
+          <Entry name="SbTopicTestParam"    type="BASE_TYPES/int16"    />
         </EntryList>
       </ContainerDataType>
 

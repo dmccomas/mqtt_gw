@@ -41,7 +41,7 @@
 static bool LoadJsonData(size_t JsonFileLen);
 static bool StubCfeToJson(const char **JsonMsgTopic, const char **JsonMsgPayload, const CFE_MSG_Message_t *CfeMsg);
 static bool StubJsonToCfe(CFE_MSG_Message_t **CfeMsg, const char *JsonMsgPayload, uint16 PayloadLen);
-static void StubSbMsgTest(bool Init);
+static void StubSbMsgTest(bool Init, int16 Param);
 
 
 /**********************/
@@ -325,10 +325,10 @@ void MQTT_TOPIC_TBL_ResetStatus(void)
 **      have any NULL pointers 
 **
 */
-void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx, bool Init)
+void MQTT_TOPIC_TBL_RunSbMsgTest(uint8 Idx, bool Init, int16 Param)
 {
 
-   (VirtualFunc[Idx].SbMsgTest)(Init);
+   (VirtualFunc[Idx].SbMsgTest)(Init, Param);
 
 } /* End MQTT_TOPIC_TBL_RunSbMsgTest() */
 
@@ -455,7 +455,7 @@ static bool StubJsonToCfe(CFE_MSG_Message_t **CfeMsg,
 ** VirtualFunc default values.
 **
 */
-static void StubSbMsgTest(bool Init)
+static void StubSbMsgTest(bool Init, int16 Param)
 {
 
    CFE_EVS_SendEvent(MQTT_TOPIC_TBL_STUB_EID, CFE_EVS_EventType_INFORMATION, 

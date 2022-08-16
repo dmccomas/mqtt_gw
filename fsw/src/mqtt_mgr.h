@@ -73,6 +73,8 @@ typedef struct
    
    bool    SbTopicTestActive;
    uint16  SbTopicTestId;
+   int16   SbTopicTestParam;
+   
    /*
    ** Contained Objects
    */

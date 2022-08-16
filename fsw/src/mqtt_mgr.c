@@ -95,12 +95,11 @@ bool MQTT_MGR_ChildTaskCallback(CHILDMGR_Class_t *ChildMgr)
 } /* End MQTT_MGR_ChildTaskCallback() */
 
 
-
 /******************************************************************************
 ** Function: MQTT_MGR_ConfigSbTopicTestCmd
 **
 ** Notes:
-**   1. TODO: Define command parameters in EDS
+**   None
 */
 bool MQTT_MGR_ConfigSbTopicTestCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
 {
@@ -112,12 +111,13 @@ bool MQTT_MGR_ConfigSbTopicTestCmd(void* DataObjPtr, const CFE_MSG_Message_t *Ms
    {
       if (ConfigSbTopicTestCmd->Action == 1)
       {
-         MqttMgr->SbTopicTestId = ConfigSbTopicTestCmd->Id;
+         MqttMgr->SbTopicTestId     = ConfigSbTopicTestCmd->Id;
+         MqttMgr->SbTopicTestParam  = ConfigSbTopicTestCmd->Param;
          MqttMgr->SbTopicTestActive = true;
          RetStatus = true;
          CFE_EVS_SendEvent(MQTT_MGR_CONFIG_TEST_EID, CFE_EVS_EventType_INFORMATION, 
                            "Started SB test for topic ID %d", ConfigSbTopicTestCmd->Id);
-         MQTT_TOPIC_TBL_RunSbMsgTest(MqttMgr->SbTopicTestId, true);      
+         MQTT_TOPIC_TBL_RunSbMsgTest(MqttMgr->SbTopicTestId, true, ConfigSbTopicTestCmd->Param);
       }
       else if (ConfigSbTopicTestCmd->Action == 2)
       {
@@ -151,22 +151,44 @@ bool MQTT_MGR_ConfigSbTopicTestCmd(void* DataObjPtr, const CFE_MSG_Message_t *Ms
 /******************************************************************************
 ** Function: MQTT_MGR_ConnectToMqttBrokerCmd
 **
-** TODO: Add logic to use command parameters
 */
 bool MQTT_MGR_ConnectToMqttBrokerCmd(void* DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
 {
-   /*
    const MQTT_GW_ConnectToMqttBroker_Payload_t *ConnectToMqttBrokerCmd = 
-         CMDMGR_PAYLOAD_PTR(MsgPtr, MQTT_GW_ConnectToMqttBroker_t);
-   */
+                                               CMDMGR_PAYLOAD_PTR(MsgPtr, MQTT_GW_ConnectToMqttBroker_t);
    bool RetStatus = true;
+   const char *BrokerAddress;
+   uint32     BrokerPort;
+   const char *ClientName;
 
+   if (ConnectToMqttBrokerCmd->BrokerAddress[0] == '\0')
+   {
+      BrokerAddress = INITBL_GetStrConfig(MqttMgr->IniTbl, CFG_MQTT_BROKER_ADDRESS);
+   }
+   else
+   {
+      BrokerAddress = ConnectToMqttBrokerCmd->BrokerAddress;
+   }
+   
+   if (ConnectToMqttBrokerCmd->BrokerPort == 0)
+   {
+      BrokerPort = INITBL_GetIntConfig(MqttMgr->IniTbl, CFG_MQTT_BROKER_PORT);
+   }
+   else
+   {
+      BrokerPort = ConnectToMqttBrokerCmd->BrokerPort;
+   }
+   
+   if (ConnectToMqttBrokerCmd->ClientName[0] == '\0')
+   {
+      ClientName = INITBL_GetStrConfig(MqttMgr->IniTbl, CFG_MQTT_CLIENT_NAME);
+   }
+   else
+   {
+      ClientName = ConnectToMqttBrokerCmd->ClientName;
+   }
 
-   const char *BrokerAddress = INITBL_GetStrConfig(MqttMgr->IniTbl, CFG_MQTT_BROKER_ADDRESS);
-   uint32     BrokerPort     = INITBL_GetIntConfig(MqttMgr->IniTbl, CFG_MQTT_BROKER_PORT);
-   const char *ClientName    = INITBL_GetStrConfig(MqttMgr->IniTbl, CFG_MQTT_CLIENT_NAME);
-    
-   MQTT_CLIENT_Connect(ClientName, BrokerAddress, BrokerPort);
+   MQTT_CLIENT_Connect(ClientName, BrokerAddress, BrokerPort); /* Sends event messages */
 
    return RetStatus;
    
@@ -186,7 +208,7 @@ void MQTT_MGR_Execute(uint32 PerfId)
    
    if (MqttMgr->SbTopicTestActive)
    {
-      MQTT_TOPIC_TBL_RunSbMsgTest(MqttMgr->SbTopicTestId, false);
+      MQTT_TOPIC_TBL_RunSbMsgTest(MqttMgr->SbTopicTestId, false, MqttMgr->SbTopicTestParam);
    }
 
 } /* End MQTT_MGR_Execute() */

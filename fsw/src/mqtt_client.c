@@ -89,7 +89,7 @@ bool MQTT_CLIENT_Connect(const char *ClientName, const char *BrokerAddress,
    bool RetStatus = false;
    int  RetCode;
    
-   /* Initial to a local variable to avoida compiler error */
+   /* Initial to a local variable to avoid a compiler error */
    MQTTPacket_connectData DefConnectOptions = MQTTPacket_connectData_initializer;
    memcpy(&MqttClient->ConnectData, &DefConnectOptions, sizeof(MQTTPacket_connectData));
 
@@ -137,7 +137,7 @@ bool MQTT_CLIENT_Connect(const char *ClientName, const char *BrokerAddress,
       else
       {
          CFE_EVS_SendEvent(MQTT_CLIENT_CONNECT_ERR_EID, CFE_EVS_EventType_ERROR, 
-                           "Error connecting to MQTT broker at %s:%d as client %s. Status=%d",
+                           "Error initializing %s:%d MQTT broker client %s. Status=%d",
                            BrokerAddress, BrokerPort, ClientName, RetCode);
       }
       
@@ -145,7 +145,7 @@ bool MQTT_CLIENT_Connect(const char *ClientName, const char *BrokerAddress,
    else
    {
       CFE_EVS_SendEvent(MQTT_CLIENT_CONNECT_ERR_EID, CFE_EVS_EventType_ERROR, 
-                        "Error creating network connection at %s:%d. Status=%d",
+                        "Error creating MQTT network connection to %s:%d. Status=%d",
                         BrokerAddress, BrokerPort, RetCode);
    }
    

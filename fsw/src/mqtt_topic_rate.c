@@ -87,9 +87,10 @@ void MQTT_TOPIC_RATE_Constructor(MQTT_TOPIC_RATE_Class_t *MqttTopicRatePtr,
    */
    MqttTopicRate->TestAxis         = MQTT_TOPIC_RATE_TEST_AXIS_X;
    MqttTopicRate->TestAxisCycleCnt = 0;
-   MqttTopicRate->TestAxisRate     = 0.0087265;  /* 0.5 deg/sec in radians with 250ms pend */
-   MqttTopicRate->TestAxisRate     = 0.0174533;  /* 1.0 deg/sec in radians with 250ms pend */
-   MqttTopicRate->TestAxisRate    *= 7.5;        /* 7.5 deg/s so 24 cycles for 90 deg */
+   MqttTopicRate->TestAxisDefRate  = 0.0087265;  /* 0.5 deg/sec in radians with 250ms pend */
+   MqttTopicRate->TestAxisDefRate  = 0.0174533;  /* 1.0 deg/sec in radians with 250ms pend */
+   MqttTopicRate->TestAxisDefRate  *= 7.5;        /* 7.5 deg/s so 24 cycles for 90 deg */
+   MqttTopicRate->TestAxisRate     = MqttTopicRate->TestAxisDefRate;
    MqttTopicRate->TestAxisCycleLim = 12*4;       /* Rotate 90 deg on each axis */
    
 } /* End MQTT_TOPIC_RATE_Constructor() */
@@ -159,14 +160,30 @@ bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg,
 /******************************************************************************
 ** Function: MQTT_TOPIC_RATE_SbMsgTest
 **
-** Convert a JSON rate topic message to a cFE rate message 
+** Convert a JSON rate topic message to a cFE rate message
+**
+** Notes:
+**   1. Param is used scale the default test rate and change the sign
+**      Increase rate:   2 <= Param <= 10
+**      Deccrease rate: 12 <= Param <= 20
 **
 */
-void MQTT_TOPIC_RATE_SbMsgTest(bool Init)
+void MQTT_TOPIC_RATE_SbMsgTest(bool Init, int16 Param)
 {
-   
+
    if (Init)
    {
+
+      MqttTopicRate->TestAxisRate = MqttTopicRate->TestAxisDefRate;
+      
+      if (Param >= 2 && Param <= 10)
+      {
+         MqttTopicRate->TestAxisRate *= (float)Param;
+      }
+      else if (Param >= 12 && Param <= 20)
+      {         
+         MqttTopicRate->TestAxisRate /= ((float)Param - 10.0);
+      }
       MqttTopicRate->TlmMsg.Payload.X = MqttTopicRate->TestAxisRate;
       MqttTopicRate->TlmMsg.Payload.Y = 0.0;
       MqttTopicRate->TlmMsg.Payload.Z = 0.0;

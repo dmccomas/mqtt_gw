@@ -85,6 +85,7 @@ typedef struct
    MQTT_TOPIC_RATE_TestAxis_t  TestAxis;
    uint16                      TestAxisCycleCnt;
    uint16                      TestAxisCycleLim;
+   float                       TestAxisDefRate;
    float                       TestAxisRate;
    
    /*
@@ -149,7 +150,7 @@ bool MQTT_TOPIC_RATE_JsonToCfe(CFE_MSG_Message_t **CfeMsg,
 ** and cause MQTT messages to be generated from the SB messages.  
 **
 */
-void MQTT_TOPIC_RATE_SbMsgTest(bool Init);
+void MQTT_TOPIC_RATE_SbMsgTest(bool Init, int16 Param);
 
 
 #endif /* _mqtt_topic_rate_ */

@@ -21,7 +21,7 @@
       "load_addr": 0,
       "exception-action": 0,
       "app-framework": "osk",
-      "tables": ["mqtt_gw_ini.json"],
+      "tables": ["mqtt_gw_ini.json","mqtt_topic.json"],
       "cmd-mid": "MQTT_GW_CMD_MID"
    }
    
